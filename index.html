@@ -12,14 +12,17 @@
         }
         th, td {
             border: 1px solid black;
-            padding: 10px;
+            padding: 0;
         }
         .color-cell {
             height: 30px;
         }
         input {
-            width: 40px;
+            width: 100%;
+            height: 100%;
             text-align: center;
+            border: none;
+            box-sizing: border-box;
         }
         button {
             margin: 10px;
@@ -52,13 +55,55 @@
             <td><input type="text" id="name8" oninput="saveScores()"></td>
         </tr>
         
+        <!-- Score input rows -->
         <script>
+            function updateTotal(player) {
+                let total = 0;
+                for (let round = 1; round <= 4; round++) {
+                    let score = document.getElementById(`score${round}_${player}`).value;
+                    total += parseInt(score) || 0;
+                }
+                document.getElementById(`total_${player}`).innerText = total;
+            }
+            
+            document.addEventListener("DOMContentLoaded", function() {
+                let table = document.querySelector("table");
+                for (let round = 1; round <= 4; round++) {
+                    let row = document.createElement("tr");
+                    for (let player = 1; player <= 8; player++) {
+                        let cell = document.createElement("td");
+                        let input = document.createElement("input");
+                        input.type = "number";
+                        input.id = `score${round}_${player}`;
+                        input.min = "0";
+                        input.max = "9";
+                        input.oninput = function() { updateTotal(player); };
+                        cell.appendChild(input);
+                        row.appendChild(cell);
+                    }
+                    table.appendChild(row);
+                }
+                
+                // Add total row
+                let totalRow = document.createElement("tr");
+                for (let player = 1; player <= 8; player++) {
+                    let cell = document.createElement("td");
+                    cell.id = `total_${player}`;
+                    cell.innerText = "0";
+                    totalRow.appendChild(cell);
+                }
+                table.appendChild(totalRow);
+            });
+
             function saveScores() {
                 let data = {};
                 for (let player = 1; player <= 8; player++) {
                     data[`name${player}`] = document.getElementById(`name${player}`).value;
                     for (let round = 1; round <= 4; round++) {
-                        data[`score${round}_${player}`] = document.getElementById(`score${round}_${player}`).value;
+                        let input = document.getElementById(`score${round}_${player}`);
+                        if (input) {
+                            data[`score${round}_${player}`] = input.value;
+                        }
                     }
                 }
                 document.cookie = `scores=${JSON.stringify(data)}; path=/; max-age=31536000`;
@@ -74,69 +119,16 @@
                             document.getElementById(`name${player}`).value = data[`name${player}`];
                         }
                         for (let round = 1; round <= 4; round++) {
-                            if (data[`score${round}_${player}`]) {
-                                document.getElementById(`score${round}_${player}`).value = data[`score${round}_${player}`];
+                            let input = document.getElementById(`score${round}_${player}`);
+                            if (input && data[`score${round}_${player}`]) {
+                                input.value = data[`score${round}_${player}`];
                             }
                         }
                         updateTotal(player);
                     }
                 }
             }
-
-            function updateTotal(player) {
-                let total = 0;
-                for (let round = 1; round <= 4; round++) {
-                    let val = document.getElementById(`score${round}_${player}`).value;
-                    total += val ? parseInt(val) : 0;
-                }
-                document.getElementById(`total_${player}`).innerText = total;
-                saveScores();
-            }
-
-            function clearScores() {
-                for (let player = 1; player <= 8; player++) {
-                    for (let round = 1; round <= 4; round++) {
-                        document.getElementById(`score${round}_${player}`).value = "";
-                    }
-                    updateTotal(player);
-                }
-                saveScores();
-            }
-
-            function clearNames() {
-                for (let player = 1; player <= 8; player++) {
-                    document.getElementById(`name${player}`).value = "";
-                }
-                saveScores();
-            }
-
-            function handleKeyPress(event, row, col) {
-                let nextRow = event.shiftKey ? row - 1 : row + 1;
-                if (nextRow < 1) nextRow = 4;
-                if (nextRow > 4) nextRow = 1;
-                document.getElementById(`score${nextRow}_${col}`).focus();
-            }
         </script>
-        
-        <!-- Score Rows -->
-        <script>
-            for (let round = 1; round <= 4; round++) {
-                document.write('<tr>');
-                for (let player = 1; player <= 8; player++) {
-                    document.write(`<td><input type="number" id="score${round}_${player}" min="0" max="9" oninput="updateTotal(${player})" onkeydown="handleKeyPress(event, ${round}, ${player})"></td>`);
-                }
-                document.write('</tr>');
-            }
-        </script>
-        
-        <!-- Total Row -->
-        <tr>
-            <script>
-                for (let player = 1; player <= 8; player++) {
-                    document.write(`<td id="total_${player}">0</td>`);
-                }
-            </script>
-        </tr>
     </table>
     <button onclick="clearScores()">Clear Scores</button>
     <button onclick="clearNames()">Clear Names</button>

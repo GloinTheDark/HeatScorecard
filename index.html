@@ -4,89 +4,141 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Score Tracker</title>
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            loadScores();
-            if (document.querySelectorAll(".round-row").length === 0) {
-                addRound();
-                addRound();
-                addRound();
-                addRound();
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: center;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 10px;
+        }
+        .color-cell {
+            height: 30px;
+        }
+        input {
+            width: 40px;
+            text-align: center;
+        }
+        button {
+            margin: 10px;
+            padding: 5px 10px;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body onload="loadScores()">
+    <h2>Game Score Tracker</h2>
+    <table>
+        <tr>
+            <td class="color-cell" style="background: yellow;"></td>
+            <td class="color-cell" style="background: blue;"></td>
+            <td class="color-cell" style="background: green;"></td>
+            <td class="color-cell" style="background: red;"></td>
+            <td class="color-cell" style="background: black; color: white;"></td>
+            <td class="color-cell" style="background: gray;"></td>
+            <td class="color-cell" style="background: orange;"></td>
+            <td class="color-cell" style="background: purple; color: white;"></td>
+        </tr>
+        <tr>
+            <td><input type="text" id="name1" oninput="saveScores()"></td>
+            <td><input type="text" id="name2" oninput="saveScores()"></td>
+            <td><input type="text" id="name3" oninput="saveScores()"></td>
+            <td><input type="text" id="name4" oninput="saveScores()"></td>
+            <td><input type="text" id="name5" oninput="saveScores()"></td>
+            <td><input type="text" id="name6" oninput="saveScores()"></td>
+            <td><input type="text" id="name7" oninput="saveScores()"></td>
+            <td><input type="text" id="name8" oninput="saveScores()"></td>
+        </tr>
+        
+        <script>
+            function saveScores() {
+                let data = {};
+                for (let player = 1; player <= 8; player++) {
+                    data[`name${player}`] = document.getElementById(`name${player}`).value;
+                    for (let round = 1; round <= 4; round++) {
+                        data[`score${round}_${player}`] = document.getElementById(`score${round}_${player}`).value;
+                    }
+                }
+                document.cookie = `scores=${JSON.stringify(data)}; path=/; max-age=31536000`;
             }
-        });
 
-        function saveScores() {
-            let scores = [];
-            document.querySelectorAll(".round-row").forEach(row => {
-                let round = row.querySelector(".round-name").textContent;
-                let scoresArray = Array.from(row.querySelectorAll(".player-score"), input => input.value || 0);
-                scores.push({ round, scores: scoresArray });
-            });
-            let playerNames = Array.from(document.querySelectorAll(".player-name"), input => input.value || "");
-            document.cookie = "scores=" + JSON.stringify({ scores, playerNames }) + "; path=/";
-        }
-
-        function loadScores() {
-            let cookie = document.cookie.split('; ').find(row => row.startsWith("scores="));
-            if (!cookie) return;
-            let data = JSON.parse(cookie.split('=')[1]);
-            if (data.playerNames) {
-                document.querySelectorAll(".player-name").forEach((input, i) => input.value = data.playerNames[i] || "");
-            }
-            data.scores.forEach(({ round, scores }) => addRound(round, scores));
-        }
-
-        function addRound(round = `Round ${document.querySelectorAll(".round-row").length + 1}`, scores = []) {
-            if (document.querySelectorAll(".round-row").length >= 4) return;
-            let row = document.createElement("tr");
-            row.classList.add("round-row");
-            row.innerHTML = `
-                <td class="round-name">${round}</td>
-                ${[...Array(8)].map((_, i) => `<td><input type="number" class="player-score" value="${scores[i] || ''}" oninput="saveScores(); updateTotals();" onkeydown="moveColumn(event, this)"></td>`).join("")}
-            `;
-            document.querySelector("#scoreTable tbody").appendChild(row);
-            updateTotals();
-        }
-
-        function updateTotals() {
-            let totals = new Array(8).fill(0);
-            document.querySelectorAll(".round-row").forEach(row => {
-                row.querySelectorAll(".player-score").forEach((input, index) => {
-                    totals[index] += parseInt(input.value) || 0;
-                });
-            });
-            document.querySelectorAll(".total-score").forEach((cell, index) => {
-                cell.textContent = totals[index];
-            });
-        }
-
-        function moveColumn(event, input) {
-            if (event.key === "Enter" || (event.key === "Enter" && event.shiftKey)) {
-                event.preventDefault();
-                let rows = Array.from(document.querySelectorAll(".round-row"));
-                let colIndex = Array.from(input.parentElement.parentElement.children).indexOf(input.parentElement);
-                let rowIndex = rows.findIndex(row => row.contains(input));
-                let targetRow = event.shiftKey ? rows[rowIndex - 1] : rows[rowIndex + 1];
-                if (targetRow) {
-                    let targetInput = targetRow.children[colIndex]?.querySelector("input");
-                    if (targetInput) targetInput.focus();
+            function loadScores() {
+                let cookies = document.cookie.split('; ');
+                let scores = cookies.find(row => row.startsWith('scores='));
+                if (scores) {
+                    let data = JSON.parse(scores.split('=')[1]);
+                    for (let player = 1; player <= 8; player++) {
+                        if (data[`name${player}`]) {
+                            document.getElementById(`name${player}`).value = data[`name${player}`];
+                        }
+                        for (let round = 1; round <= 4; round++) {
+                            if (data[`score${round}_${player}`]) {
+                                document.getElementById(`score${round}_${player}`).value = data[`score${round}_${player}`];
+                            }
+                        }
+                        updateTotal(player);
+                    }
                 }
             }
-        }
-    </script>
-</head>
-<body>
-    <h1>Game Score Tracker</h1>
-    <table id="scoreTable" border="1">
-        <thead>
-        </thead>
-        <tbody></tbody>
-        <tfoot>
-            <tr>
-                <td>Total</td>
-                ${[...Array(8)].map(() => `<td class="total-score">0</td>`).join("")}
-            </tr>
-        </tfoot>
+
+            function updateTotal(player) {
+                let total = 0;
+                for (let round = 1; round <= 4; round++) {
+                    let val = document.getElementById(`score${round}_${player}`).value;
+                    total += val ? parseInt(val) : 0;
+                }
+                document.getElementById(`total_${player}`).innerText = total;
+                saveScores();
+            }
+
+            function clearScores() {
+                for (let player = 1; player <= 8; player++) {
+                    for (let round = 1; round <= 4; round++) {
+                        document.getElementById(`score${round}_${player}`).value = "";
+                    }
+                    updateTotal(player);
+                }
+                saveScores();
+            }
+
+            function clearNames() {
+                for (let player = 1; player <= 8; player++) {
+                    document.getElementById(`name${player}`).value = "";
+                }
+                saveScores();
+            }
+
+            function handleKeyPress(event, row, col) {
+                let nextRow = event.shiftKey ? row - 1 : row + 1;
+                if (nextRow < 1) nextRow = 4;
+                if (nextRow > 4) nextRow = 1;
+                document.getElementById(`score${nextRow}_${col}`).focus();
+            }
+        </script>
+        
+        <!-- Score Rows -->
+        <script>
+            for (let round = 1; round <= 4; round++) {
+                document.write('<tr>');
+                for (let player = 1; player <= 8; player++) {
+                    document.write(`<td><input type="number" id="score${round}_${player}" min="0" max="9" oninput="updateTotal(${player})" onkeydown="handleKeyPress(event, ${round}, ${player})"></td>`);
+                }
+                document.write('</tr>');
+            }
+        </script>
+        
+        <!-- Total Row -->
+        <tr>
+            <script>
+                for (let player = 1; player <= 8; player++) {
+                    document.write(`<td id="total_${player}">0</td>`);
+                }
+            </script>
+        </tr>
     </table>
+    <button onclick="clearScores()">Clear Scores</button>
+    <button onclick="clearNames()">Clear Names</button>
 </body>
 </html>

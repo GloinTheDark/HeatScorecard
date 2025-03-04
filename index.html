@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Score Tracker</title>
+    <title>Heat Score Card</title>
     <style>
         table {
             width: 100%;
@@ -32,27 +32,27 @@
     </style>
 </head>
 <body onload="loadScores()">
-    <h2>Game Score Tracker</h2>
+    <h2>Heat Score Card</h2>
     <table>
         <tr>
-            <td class="color-cell" style="background: yellow;"></td>
-            <td class="color-cell" style="background: blue;"></td>
-            <td class="color-cell" style="background: green;"></td>
-            <td class="color-cell" style="background: red;"></td>
-            <td class="color-cell" style="background: black; color: white;"></td>
-            <td class="color-cell" style="background: gray;"></td>
-            <td class="color-cell" style="background: orange;"></td>
-            <td class="color-cell" style="background: purple; color: white;"></td>
+            <td class="color-cell; column1" style="background: yellow;color: black;">Yellow</td>
+            <td class="color-cell; column2" style="background: blue; color: white;">Blue</td>
+            <td class="color-cell; column3" style="background: green; color: white;">Green</td>
+            <td class="color-cell; column4" style="background: red; color: white;">Red</td>
+            <td class="color-cell; column5" style="background: black; color: white;">Black</td>
+            <td class="color-cell; column6" style="background: lightgray; color: black;">Gray</td>
+            <td class="color-cell; column7" style="background: orange; color: black;">Orange</td>
+            <td class="color-cell; column8" style="background: purple; color: white;">Purple</td>
         </tr>
         <tr>
-            <td><input type="text" id="name1" oninput="saveScores()"></td>
-            <td><input type="text" id="name2" oninput="saveScores()"></td>
-            <td><input type="text" id="name3" oninput="saveScores()"></td>
-            <td><input type="text" id="name4" oninput="saveScores()"></td>
-            <td><input type="text" id="name5" oninput="saveScores()"></td>
-            <td><input type="text" id="name6" oninput="saveScores()"></td>
-            <td><input type="text" id="name7" oninput="saveScores()"></td>
-            <td><input type="text" id="name8" oninput="saveScores()"></td>
+            <td class="column1"><input type="text" id="name1" oninput="saveScores()"></td>
+            <td class="column2"><input type="text" id="name2" oninput="saveScores()"></td>
+            <td class="column3"><input type="text" id="name3" oninput="saveScores()"></td>
+            <td class="column4"><input type="text" id="name4" oninput="saveScores()"></td>
+            <td class="column5"><input type="text" id="name5" oninput="saveScores()"></td>
+            <td class="column6"><input type="text" id="name6" oninput="saveScores()"></td>
+            <td class="column7"><input type="text" id="name7" oninput="saveScores()"></td>
+            <td class="column8"><input type="text" id="name7" oninput="saveScores()"></td>
         </tr>
         
         <!-- Score input rows -->
@@ -72,6 +72,7 @@
                     let row = document.createElement("tr");
                     for (let player = 1; player <= 8; player++) {
                         let cell = document.createElement("td");
+                        cell.classList.add(`column${player}`);
                         let input = document.createElement("input");
                         input.type = "number";
                         input.id = `score${round}_${player}`;
@@ -88,6 +89,7 @@
                 let totalRow = document.createElement("tr");
                 for (let player = 1; player <= 8; player++) {
                     let cell = document.createElement("td");
+                    cell.classList.add(`column${player}`);
                     cell.id = `total_${player}`;
                     cell.innerText = "0";
                     totalRow.appendChild(cell);
@@ -128,9 +130,32 @@
                     }
                 }
             }
+            function hideColumn(c) {
+                let columns = document.querySelectorAll(`.column${c}`);
+                columns.forEach(col => {
+                    col.style.display = (col.style.display === "none") ? "table-cell" : "none";
+                });
+            }
+
+            function clearScores() {
+                // TODO: Add a popup Confimation window
+                for (let round = 1; round <= 4; round++) {
+                    for (let player = 1; player <= 8; player++) {
+                        document.getElementById(`score${round}_${player}`).value = "";
+                    }
+                }
+            }
+
+            function clearNames() {
+                for (let player = 1; player <= 8; player++) {
+                    document.getElementById(`name${player}`).value = "";
+                }
+            }
+
         </script>
     </table>
     <button onclick="clearScores()">Clear Scores</button>
     <button onclick="clearNames()">Clear Names</button>
+    <button onclick="hideColumn(8)">Hide/Show Purple</button>
 </body>
 </html>

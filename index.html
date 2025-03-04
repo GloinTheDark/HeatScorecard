@@ -1,29 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Heat Score Card</title>
     <style>
         table {
-            width: 100%;
+            /* width: 100%; */
             border-collapse: collapse;
             text-align: center;
         }
-        th, td {
+
+        th,
+        td {
             border: 1px solid black;
             padding: 0;
         }
+
         .color-cell {
             height: 30px;
         }
+
         input {
-            width: 100%;
+            /* width: 100%; */
             height: 100%;
             text-align: center;
             border: none;
             box-sizing: border-box;
         }
+
         button {
             margin: 10px;
             padding: 5px 10px;
@@ -31,30 +37,11 @@
         }
     </style>
 </head>
+
 <body onload="loadScores()">
     <h2>Heat Score Card</h2>
     <table>
-        <tr>
-            <td class="color-cell; column1" style="background: yellow;color: black;">Yellow</td>
-            <td class="color-cell; column2" style="background: blue; color: white;">Blue</td>
-            <td class="color-cell; column3" style="background: green; color: white;">Green</td>
-            <td class="color-cell; column4" style="background: red; color: white;">Red</td>
-            <td class="color-cell; column5" style="background: black; color: white;">Black</td>
-            <td class="color-cell; column6" style="background: lightgray; color: black;">Gray</td>
-            <td class="color-cell; column7" style="background: orange; color: black;">Orange</td>
-            <td class="color-cell; column8" style="background: purple; color: white;">Purple</td>
-        </tr>
-        <tr>
-            <td class="column1"><input type="text" id="name1" oninput="saveScores()"></td>
-            <td class="column2"><input type="text" id="name2" oninput="saveScores()"></td>
-            <td class="column3"><input type="text" id="name3" oninput="saveScores()"></td>
-            <td class="column4"><input type="text" id="name4" oninput="saveScores()"></td>
-            <td class="column5"><input type="text" id="name5" oninput="saveScores()"></td>
-            <td class="column6"><input type="text" id="name6" oninput="saveScores()"></td>
-            <td class="column7"><input type="text" id="name7" oninput="saveScores()"></td>
-            <td class="column8"><input type="text" id="name7" oninput="saveScores()"></td>
-        </tr>
-        
+
         <!-- Score input rows -->
         <script>
             function updateTotal(player) {
@@ -65,9 +52,24 @@
                 }
                 document.getElementById(`total_${player}`).innerText = total;
             }
-            
-            document.addEventListener("DOMContentLoaded", function() {
+
+            document.addEventListener("DOMContentLoaded", function () {
                 let table = document.querySelector("table");
+
+                let nameRow = document.createElement("tr");
+                for (let player = 1; player <= 8; player++) {
+                    let cell = document.createElement("td");
+                    cell.classList.add(`color-cell`);
+                    cell.classList.add(`column${player}`);
+                    cell.classList.add(`name${player}`);
+                    cell.style.backgroundColor = colorValues[player - 1];
+                    cell.style.color = textColors[player - 1];
+                    cell.innerText = colorNames[player - 1];
+                    nameRow.appendChild(cell);
+                }
+                table.appendChild(nameRow);
+
+
                 for (let round = 1; round <= 4; round++) {
                     let row = document.createElement("tr");
                     for (let player = 1; player <= 8; player++) {
@@ -78,13 +80,13 @@
                         input.id = `score${round}_${player}`;
                         input.min = "0";
                         input.max = "9";
-                        input.oninput = function() { updateTotal(player); };
+                        input.oninput = function () { updateTotal(player); };
                         cell.appendChild(input);
                         row.appendChild(cell);
                     }
                     table.appendChild(row);
                 }
-                
+
                 // Add total row
                 let totalRow = document.createElement("tr");
                 for (let player = 1; player <= 8; player++) {
@@ -95,6 +97,9 @@
                     totalRow.appendChild(cell);
                 }
                 table.appendChild(totalRow);
+
+                hideColumn(7)
+                hideColumn(8)
             });
 
             function saveScores() {
@@ -130,6 +135,7 @@
                     }
                 }
             }
+
             function hideColumn(c) {
                 let columns = document.querySelectorAll(`.column${c}`);
                 columns.forEach(col => {
@@ -137,18 +143,27 @@
                 });
             }
 
+            let colorNames = ["Yellow", "Blue", "Green", "Red", "Black", "Gray", "Orange", "Purple"];
+            let colorValues = ["yellow", "blue", "green", "red", "black", "lightgray", "orange", "purple"];
+            let textColors = ["black", "white", "white", "white", "white", "black", "black", "white"];
+            
             function clearScores() {
-                // TODO: Add a popup Confimation window
-                for (let round = 1; round <= 4; round++) {
-                    for (let player = 1; player <= 8; player++) {
-                        document.getElementById(`score${round}_${player}`).value = "";
+                if (confirm("Are you sure you want to clear scores?")) {
+                    for (let round = 1; round <= 4; round++) {
+                        for (let player = 1; player <= 8; player++) {
+                            document.getElementById(`score${round}_${player}`).value = "";
+                        }
                     }
                 }
             }
 
             function clearNames() {
-                for (let player = 1; player <= 8; player++) {
-                    document.getElementById(`name${player}`).value = "";
+                if (confirm("Are you sure you want to clear the player names?")) {
+                    for (let player = 1; player <= 8; player++) {
+
+                        document.getElementById(`total_${player}`).innerText = "0";
+                        // document.getElementById(`name${player}`).value = "";
+                    }
                 }
             }
 
@@ -156,6 +171,8 @@
     </table>
     <button onclick="clearScores()">Clear Scores</button>
     <button onclick="clearNames()">Clear Names</button>
-    <button onclick="hideColumn(8)">Hide/Show Purple</button>
+    <button onclick="hideColumn(7); hideColumn(8)">Hide/Show Purple</button>
+    <button onclick="console.log('------------')">log</button>
 </body>
+
 </html>

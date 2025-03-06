@@ -138,6 +138,7 @@
 
 
             document.addEventListener("DOMContentLoaded", function () {
+                console.log("DOMContentLoaded");
                 let table = document.querySelector("table");
 
                 let nameRow = document.createElement("tr");
@@ -184,9 +185,6 @@
                     totalRow.appendChild(cell);
                 }
                 table.appendChild(totalRow);
-
-                hideColumn(7)
-                hideColumn(8)
             });
 
             function enterName(player) {
@@ -205,9 +203,13 @@
             }
 
             function saveScores() {
+                console.log("saveScores");
                 let data = {};
                 for (let player = 1; player <= 8; player++) {
-                    data[`name${player}`] = document.getElementById(`name${player}`).value;
+                    let isHidden = document.querySelector(`.column${player}`).style.display === "none";
+                    data[`hidden${player}`] = isHidden;
+                    if (isHidden) continue;
+                    data[`name${player}`] = document.getElementById(`name${player}`).innerText;
                     for (let round = 1; round <= 4; round++) {
                         let input = document.getElementById(`score${round}_${player}`);
                         if (input) {
@@ -215,17 +217,27 @@
                         }
                     }
                 }
+                console.log(data);
                 document.cookie = `scores=${JSON.stringify(data)}; path=/; max-age=31536000`;
+                console.log(document.cookie);
             }
 
             function loadScores() {
+                console.log("loadScores");
+                console.log(document.cookie);
                 let cookies = document.cookie.split('; ');
+                console.log(cookies);
                 let scores = cookies.find(row => row.startsWith('scores='));
+                console.log(scores);
                 if (scores) {
                     let data = JSON.parse(scores.split('=')[1]);
+                    console.log(data);
                     for (let player = 1; player <= 8; player++) {
                         if (data[`name${player}`]) {
                             document.getElementById(`name${player}`).value = data[`name${player}`];
+                        }
+                        if (data[`hidden${player}`]) {
+                            hideColumn(player);
                         }
                         for (let round = 1; round <= 4; round++) {
                             let input = document.getElementById(`score${round}_${player}`);
@@ -242,7 +254,13 @@
             function hideColumn(c) {
                 let columns = document.querySelectorAll(`.column${c}`);
                 columns.forEach(col => {
-                    col.style.display = (col.style.display === "none") ? "table-cell" : "none";
+                    col.style.display = "none";
+                });
+            }
+            function showColumn(c) {
+                let columns = document.querySelectorAll(`.column${c}`);
+                columns.forEach(col => {
+                    col.style.display = "table-cell";
                 });
             }
 
@@ -326,7 +344,6 @@
     </table>
     <button onclick="clearScores()">Clear Scores</button>
     <button onclick="clearNames()">Clear Names</button>
-    <button onclick="hideColumn(7); hideColumn(8)">Hide/Show Purple</button>
     <button onclick="console.log('------------')">log</button>
 
 

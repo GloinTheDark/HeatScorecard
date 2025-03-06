@@ -35,6 +35,79 @@
             padding: 5px 10px;
             font-size: 16px;
         }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        /* Button used to open the contact form - fixed at the bottom of the page */
+        .open-button {
+            background-color: #555;
+            color: white;
+            padding: 16px 20px;
+            border: none;
+            cursor: pointer;
+            opacity: 0.8;
+            position: fixed;
+            bottom: 23px;
+            right: 28px;
+            width: 280px;
+        }
+
+        /* The popup form - hidden by default */
+        .form-popup {
+            display: none;
+            position: fixed;
+            border: 3px solid #f1f1f1;
+            z-index: 9;
+        }
+
+        /* Add styles to the form container */
+        .form-container {
+            max-width: 300px;
+            padding: 10px;
+            background-color: white;
+        }
+
+        /* Full-width input fields */
+        .form-container input[type=text],
+        .form-container input[type=password] {
+            width: 100%;
+            padding: 15px;
+            margin: 5px 0 22px 0;
+            border: none;
+            background: #f1f1f1;
+        }
+
+        /* When the inputs get focus, do something */
+        .form-container input[type=text]:focus,
+        .form-container input[type=password]:focus {
+            background-color: #ddd;
+            outline: none;
+        }
+
+        /* Set a style for the submit/login button */
+        .form-container .btn {
+            background-color: #04AA6D;
+            color: white;
+            padding: 16px 20px;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 10px;
+            opacity: 0.8;
+        }
+
+        /* Add a red background color to the cancel button */
+        .form-container .cancel {
+            background-color: red;
+        }
+
+        /* Add some hover effects to buttons */
+        .form-container .btn:hover,
+        .open-button:hover {
+            opacity: 1;
+        }
     </style>
 </head>
 
@@ -61,10 +134,11 @@
                     let cell = document.createElement("td");
                     cell.classList.add(`color-cell`);
                     cell.classList.add(`column${player}`);
-                    cell.classList.add(`name${player}`);
+                    cell.id = `name${player}`;
                     cell.style.backgroundColor = colorValues[player - 1];
                     cell.style.color = textColors[player - 1];
                     cell.innerText = colorNames[player - 1];
+                    cell.onclick = function () { openForm(player); };
                     nameRow.appendChild(cell);
                 }
                 table.appendChild(nameRow);
@@ -101,6 +175,21 @@
                 hideColumn(7)
                 hideColumn(8)
             });
+
+            function enterName(player) {
+                let cell = document.getElementById(`name${player}`);
+                if (cell) {
+                    let name = prompt("Enter player name\n(Enter blank to remove column)", cell.innerText);
+                    if (name) {
+                        if (name.trim() == "") {
+                            hideColumn(player);
+                        } else {
+                            document.getElementById(`name${player}`).innerText = name;
+                        }
+                        saveScores();
+                    }
+                }
+            }
 
             function saveScores() {
                 let data = {};
@@ -146,7 +235,7 @@
             let colorNames = ["Yellow", "Blue", "Green", "Red", "Black", "Gray", "Orange", "Purple"];
             let colorValues = ["yellow", "blue", "green", "red", "black", "lightgray", "orange", "purple"];
             let textColors = ["black", "white", "white", "white", "white", "black", "black", "white"];
-            
+
             function clearScores() {
                 if (confirm("Are you sure you want to clear scores?")) {
                     for (let round = 1; round <= 4; round++) {
@@ -167,12 +256,69 @@
                 }
             }
 
+            function openForm(player) {
+                let cell = document.getElementById(`name${player}`);
+                let form = document.getElementById("myForm");
+                let formNameField = document.getElementById("formNameField");
+                formNameField.value = cell.innerText;
+                var colorButton = document.getElementById("colorButton");
+                colorButton.style.backgroundColor = cell.style.backgroundColor;
+                colorButton.style.color = cell.style.color;
+                colorButton.onclick = function () {
+                    let colorIndex = colorValues.indexOf(colorButton.style.backgroundColor);
+                    colorIndex = (colorIndex + 1) % colorValues.length;
+                    colorButton.style.backgroundColor = colorValues[colorIndex];
+                    colorButton.style.color = textColors[colorIndex];
+                    saveScores();
+                };
+
+                document.getElementById("removePlayer").onclick = function () {
+                    hideColumn(player);
+                    saveScores();
+                    closeForm();
+                };
+                var playerFormSaveButton = document.getElementById("playerFormSaveButton");
+                playerFormSaveButton.onclick = function () {
+                    cell.innerText = formNameField.value;
+                    cell.style.backgroundColor = colorButton.style.backgroundColor;
+                    cell.style.color = colorButton.style.color;
+                    saveScores();
+                    closeForm();
+                };
+
+                // formNameField.style.backgroundColor = cell.style.backgroundColor;
+
+                // set the form top-left to cell top left
+                let rect = cell.getBoundingClientRect();
+                form.style.top = `${rect.bottom}px`;
+                form.style.left = `${rect.left}px`;
+
+                form.style.display = "block";
+            }
+
+            function closeForm() {
+                document.getElementById("myForm").style.display = "none";
+            }
         </script>
     </table>
     <button onclick="clearScores()">Clear Scores</button>
     <button onclick="clearNames()">Clear Names</button>
     <button onclick="hideColumn(7); hideColumn(8)">Hide/Show Purple</button>
     <button onclick="console.log('------------')">log</button>
+
+
+    <!-- The form -->
+    <div class="form-popup" id="myForm">
+        <!-- <form action="/action_page.php" class="form-container"> -->
+        <form class="form-container">
+            <label for="name"><b>Player Name</b></label>
+            <input id="formNameField" type="text" name="name" required>
+            <button id="colorButton" type="button" class="btn" onclick="">Change Color</button>
+            <button id="removePlayer" type="button" class="btn" onclick="">Remove Player</button>
+            <button id="playerFormSaveButton" type="button" class="btn">Save</button>
+            <button type="button" class="btn cancel" onclick="closeForm()">Cancel</button>
+        </form>
+    </div>
 </body>
 
 </html>

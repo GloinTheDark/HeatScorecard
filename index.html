@@ -146,9 +146,10 @@
                     cell.classList.add(`color-cell`);
                     cell.classList.add(`column${player}`);
                     cell.id = `name${player}`;
-                    cell.style.backgroundColor = colorValues[player - 1];
-                    cell.style.color = textColors[player - 1];
-                    cell.innerText = colorNames[player - 1];
+                    let colorIndex = player - 1;
+                    cell.style.backgroundColor = colorValues[colorIndex];
+                    cell.style.color = textColors[colorIndex];
+                    cell.innerText = colorNames[colorIndex];
                     cell.onclick = function () { openForm(player); };
                     nameRow.appendChild(cell);
                 }

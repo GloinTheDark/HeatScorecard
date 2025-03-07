@@ -287,31 +287,21 @@
                             break;
                         }
                     }
-                    player.place[race] = place;
-
-                    let total = 0;
-                    for (let place of player.place) {
-                        total += placePoints[place];
-                    }
-                    player.total = total;
-
-                    rebuildTable();
                 } else {
-
-                    player.place[race] = 0;
-
-                    let total = 0;
-                    for (let place of player.place) {
-                        total += placePoints[place];
-                    }
-                    player.total = total;
-
-                    rebuildTable();
-
+                    place = 0;
                 }
+                player.place[race] = place;
+
+                let total = 0;
+                for (let place of player.place) {
+                    total += placePoints[place];
+                }
+                player.total = total;
+                saveScores();
+                rebuildTable();
             }
-
-
+            
+            
             function clearScores() {
                 if (confirm("Are you sure you want to clear scores?")) {
                     for (score of scoreCard.scores) {
@@ -320,13 +310,15 @@
                         }
                         score.total = 0;
                     }
+                    saveScores();
                     rebuildTable();
                 }
             }
-
+            
             function resetScoreCard() {
                 if (confirm("Are you sure you want to clear the player names?")) {
                     scoreCard = JSON.parse(JSON.stringify(defaultScoreCard));
+                    saveScores();
                     rebuildTable();
                 }
             }
@@ -357,8 +349,8 @@
                         scoreCard.scores.splice(playerIndex, 1);
                         document.getElementById("addRacer").disabled = false;
                     }
-                    saveScores();
                     closeForm();
+                    saveScores();
                     rebuildTable();
                 };
 

@@ -127,21 +127,22 @@
 
 
 <body onload="loadScores()">
-    <h2>Heat:<br>Pedal to the Metal<br>Score Card</h2>
+    <h2>Heat:<br>Pedal to the Metal<br>Online Score Card</h2>
     <table>
-        <!-- Score input rows -->
+
         <script>
+            console.log("--- Table Initializing");
             let defaultScoreCard = {
                 races: 3,
                 scores: [
                     {
-                        name: "Red Fred",
+                        name: "Red",
                         colorIndex: 3,
                         place: [0, 0, 0],
                         total: 0
                     },
                     {
-                        name: "Bluey",
+                        name: "Blue",
                         colorIndex: 1,
                         place: [0, 0, 0],
                         total: 0
@@ -167,8 +168,8 @@
 
 
             function addPlayerColumn(player, playerIndex) {
-                console.log("addPlayerColumn");
-                console.log(player);
+                console.log("--- addPlayerColumn");
+                // console.log(player);
 
                 let table = document.querySelector("table");
                 let nameRow = document.getElementById("nameRow");
@@ -212,7 +213,7 @@
 
 
             function buildTable() {
-                console.log("DOMContentLoaded");
+                console.log("--- buildTable");
                 let table = document.querySelector("table");
                 table.id = "scoreTable";
 
@@ -221,7 +222,7 @@
                 nameRow.appendChild(document.createElement("td"));
                 table.appendChild(nameRow);
 
-                for (let race = 1; race <= defaultScoreCard.races; race++) {
+                for (let race = 1; race <= scoreCard.races; race++) {
                     let row = document.createElement("tr");
                     row.id = `race${race}`;
                     let raceRowHeaderCell = document.createElement("td");
@@ -236,28 +237,28 @@
                 totalRow.id = "totalRow";
                 let totalCell = document.createElement("td")
                 totalCell.innerText = "Total";
+                totalCell.onclick = function () { SortColumnsByTotal(); };
                 totalRow.appendChild(totalCell);
                 table.appendChild(totalRow);
 
                 for (let i = 0; i < scoreCard.scores.length; i++) {
-                    console.log(`i = ${i}`);
                     addPlayerColumn(scoreCard.scores[i], i);
                 }
             };
 
             function saveScores() {
-                console.log("saveScores");
+                console.log("--- saveScores");
                 document.cookie = `scoreCard=${JSON.stringify(scoreCard)}; path=/; max-age=31536000`;
-                console.log(document.cookie);
+                // console.log(document.cookie);
             }
 
             function loadScores() {
-                console.log("loadScores");
-                console.log(document.cookie);
+                console.log("--- loadScores");
+                // console.log(document.cookie);
                 let cookies = document.cookie.split('; ');
-                console.log(cookies);
+                // console.log(cookies);
                 let scores = cookies.find(row => row.startsWith('scoreCard='));
-                console.log(scores);
+                // console.log(scores);
                 if (scores) {
                     scoreCard = JSON.parse(scores.split('=')[1]);
                 } else {
@@ -266,12 +267,13 @@
                 rebuildTable();
             }
             function rebuildTable() {
+                console.log("--- rebuildTable");
                 // clear the table
                 let table = document.getElementById("scoreTable");
                 while (table.firstChild) {
                     table.removeChild(table.firstChild);
                 }
-                console.log(scoreCard);
+                // console.log(scoreCard);
                 // rebuild the table
                 buildTable();
             }
@@ -424,6 +426,15 @@
                 return 0;
             }
 
+            function addRace() {
+                for (let score of scoreCard.scores) {
+                    score.place.push(0);
+                }
+                scoreCard.races += 1;
+                saveScores();
+                rebuildTable();
+            }
+
             function addRacer() {
                 colorIndex = getUnusedColorIndex();
                 let newRacer = {
@@ -446,6 +457,7 @@
 
     <button onclick="SortColumnsByTotal()">Sort Racers</button>
     <button id="addRacer" onclick="addRacer()">Add Racer</button>
+    <button id="addRace" onclick="addRace()">Add Race</button>
     <br>
     <button onclick="clearScores()">Clear Scores</button>
     <button onclick="resetScoreCard()">Reset Score Card</button>
@@ -454,10 +466,17 @@
 
     <!-- The form -->
     <div class="form-popup" id="myForm">
+        <style>
+            .form-container {
+                border: 3px solid #333;
+                /* Darker border color */
+            }
+        </style>
         <!-- <form action="/action_page.php" class="form-container"> -->
         <form class="form-container">
             <label for="name"><b>Player Name</b></label>
-            <input id="formNameField" type="text" name="name" required>
+            <input id="formNameField" type="text" name="name" required
+                onkeydown="if(event.key === 'Enter') { event.preventDefault(); document.getElementById('playerFormSaveButton').click(); }">
             <input type="checkbox" id="removePlayer"> Remove Player
             <button id="colorButton" type="button" class="btn" onclick="">Change Color</button>
             <button id="playerFormSaveButton" type="button" class="btn">Save</button>

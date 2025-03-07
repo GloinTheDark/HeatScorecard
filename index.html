@@ -116,6 +116,12 @@
         .open-button:hover {
             opacity: 1;
         }
+
+        /* Ensure checkboxes are visible on Safari on iPhone */
+        input[type="checkbox"] {
+            -webkit-appearance: checkbox;
+            appearance: checkbox;
+        }
     </style>
 </head>
 
@@ -300,8 +306,8 @@
                 saveScores();
                 rebuildTable();
             }
-            
-            
+
+
             function clearScores() {
                 if (confirm("Are you sure you want to clear scores?")) {
                     for (score of scoreCard.scores) {
@@ -314,7 +320,7 @@
                     rebuildTable();
                 }
             }
-            
+
             function resetScoreCard() {
                 if (confirm("Are you sure you want to clear the player names?")) {
                     scoreCard = JSON.parse(JSON.stringify(defaultScoreCard));
@@ -358,8 +364,13 @@
 
                 // set the form top-left to cell top left
                 let rect = cell.getBoundingClientRect();
-                form.style.top = `${rect.bottom}px`;
-                form.style.left = `${rect.left}px`;
+                // form.style.top = `${rect.bottom}px`;
+                // form.style.left = `${rect.left}px`;
+
+                form.style.position = "fixed";
+                form.style.top = "50%";
+                form.style.left = "50%";
+                form.style.transform = "translate(-50%, -50%)";
 
                 form.style.display = "block";
             }
@@ -432,11 +443,12 @@
 
         </script>
     </table>
-    <button onclick="clearScores()">Clear Scores</button>
-    <button id="addRacer" onclick="addRacer()">Add Racer</button>
-    <button onclick="resetScoreCard()">Reset Score Card</button>
 
-    <button onclick="SortColumnsByTotal()">Sort Columns by Total</button>
+    <button onclick="SortColumnsByTotal()">Sort Racers</button>
+    <button id="addRacer" onclick="addRacer()">Add Racer</button>
+    <br>
+    <button onclick="clearScores()">Clear Scores</button>
+    <button onclick="resetScoreCard()">Reset Score Card</button>
 
 
 

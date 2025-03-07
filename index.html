@@ -121,208 +121,246 @@
 
 
 <body onload="loadScores()">
-    <h2>Heat Score Card</h2>
+    <h2>Heat:<br>Pedal to the Metal<br>Score Card</h2>
     <table>
-
-
         <!-- Score input rows -->
         <script>
-            function updateTotal(player) {
-                let total = 0;
-                for (let round = 1; round <= 4; round++) {
-                    let score = document.getElementById(`score${round}_${player}`).value;
-                    total += parseInt(score) || 0;
-                }
-                document.getElementById(`total_${player}`).innerText = total;
+            let defaultScoreCard = {
+                races: 3,
+                scores: [
+                    {
+                        name: "Red Fred",
+                        colorIndex: 3,
+                        place: [0, 0, 0],
+                        total: 0
+                    },
+                    {
+                        name: "Bluey",
+                        colorIndex: 1,
+                        place: [0, 0, 0],
+                        total: 0
+                    },
+                ]
+            };
+
+            placeNames = ["", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "DNF"];
+            placePoints = [0, 9, 6, 4, 3, 2, 1, 0, 0, 0];
+
+            function placeString(place) {
+                if (place === 0) return "";
+                return `${placeNames[place]} (${placePoints[place]})`;
             }
 
-
-            document.addEventListener("DOMContentLoaded", function () {
-                console.log("DOMContentLoaded");
-                let table = document.querySelector("table");
-
-                let nameRow = document.createElement("tr");
-                for (let player = 1; player <= 8; player++) {
-                    let cell = document.createElement("td");
-                    cell.classList.add(`color-cell`);
-                    cell.classList.add(`column${player}`);
-                    cell.id = `name${player}`;
-                    let colorIndex = player - 1;
-                    cell.style.backgroundColor = colorValues[colorIndex];
-                    cell.style.color = textColors[colorIndex];
-                    cell.innerText = colorNames[colorIndex];
-                    cell.onclick = function () { openForm(player); };
-                    nameRow.appendChild(cell);
-                }
-                table.appendChild(nameRow);
-
-
-                for (let round = 1; round <= 4; round++) {
-                    let row = document.createElement("tr");
-                    for (let player = 1; player <= 8; player++) {
-                        let cell = document.createElement("td");
-                        cell.classList.add(`column${player}`);
-                        let input = document.createElement("input");
-                        input.type = "number";
-                        input.id = `score${round}_${player}`;
-                        input.min = "0";
-                        input.max = "9";
-                        input.oninput = function () { updateTotal(player); };
-                        cell.appendChild(input);
-                        row.appendChild(cell);
-                    }
-                    table.appendChild(row);
-                }
-
-
-                // Add total row
-                let totalRow = document.createElement("tr");
-                for (let player = 1; player <= 8; player++) {
-                    let cell = document.createElement("td");
-                    cell.classList.add(`column${player}`);
-                    cell.id = `total_${player}`;
-                    cell.innerText = "0";
-                    totalRow.appendChild(cell);
-                }
-                table.appendChild(totalRow);
-            });
-
-            function enterName(player) {
-                let cell = document.getElementById(`name${player}`);
-                if (cell) {
-                    let name = prompt("Enter player name\n(Enter blank to remove column)", cell.innerText);
-                    if (name) {
-                        if (name.trim() == "") {
-                            hideColumn(player);
-                        } else {
-                            document.getElementById(`name${player}`).innerText = name;
-                        }
-                        saveScores();
-                    }
-                }
-            }
-
-            function saveScores() {
-                console.log("saveScores");
-                let data = {};
-                for (let player = 1; player <= 8; player++) {
-                    let isHidden = document.querySelector(`.column${player}`).style.display === "none";
-                    data[`hidden${player}`] = isHidden;
-                    if (isHidden) continue;
-                    data[`name${player}`] = document.getElementById(`name${player}`).innerText;
-                    for (let round = 1; round <= 4; round++) {
-                        let input = document.getElementById(`score${round}_${player}`);
-                        if (input) {
-                            data[`score${round}_${player}`] = input.value;
-                        }
-                    }
-                }
-                console.log(data);
-                document.cookie = `scores=${JSON.stringify(data)}; path=/; max-age=31536000`;
-                console.log(document.cookie);
-            }
-
-            function loadScores() {
-                console.log("loadScores");
-                console.log(document.cookie);
-                let cookies = document.cookie.split('; ');
-                console.log(cookies);
-                let scores = cookies.find(row => row.startsWith('scores='));
-                console.log(scores);
-                if (scores) {
-                    let data = JSON.parse(scores.split('=')[1]);
-                    console.log(data);
-                    for (let player = 1; player <= 8; player++) {
-                        if (data[`name${player}`]) {
-                            document.getElementById(`name${player}`).value = data[`name${player}`];
-                        }
-                        if (data[`hidden${player}`]) {
-                            hideColumn(player);
-                        }
-                        for (let round = 1; round <= 4; round++) {
-                            let input = document.getElementById(`score${round}_${player}`);
-                            if (input && data[`score${round}_${player}`]) {
-                                input.value = data[`score${round}_${player}`];
-                            }
-                        }
-                        updateTotal(player);
-                    }
-                }
-            }
-
-
-            function hideColumn(c) {
-                let columns = document.querySelectorAll(`.column${c}`);
-                columns.forEach(col => {
-                    col.style.display = "none";
-                });
-            }
-            function showColumn(c) {
-                let columns = document.querySelectorAll(`.column${c}`);
-                columns.forEach(col => {
-                    col.style.display = "table-cell";
-                });
-            }
+            let scoreCard = JSON.parse(JSON.stringify(defaultScoreCard));
 
             let colorNames = ["Yellow", "Blue", "Green", "Red", "Black", "Gray", "Orange", "Purple"];
             let colorValues = ["yellow", "blue", "green", "red", "black", "lightgray", "orange", "purple"];
             let textColors = ["black", "white", "white", "white", "white", "black", "black", "white"];
 
-            function clearScores() {
-                if (confirm("Are you sure you want to clear scores?")) {
-                    for (let round = 1; round <= 4; round++) {
-                        for (let player = 1; player <= 8; player++) {
-                            document.getElementById(`score${round}_${player}`).value = "";
-                        }
-                        if (confirm("Are you sure you want to clear scores?")) {
-                            for (let round = 1; round <= 4; round++) {
-                                for (let player = 1; player <= 8; player++) {
-                                    document.getElementById(`score${round}_${player}`).value = "";
-                                }
+            document.addEventListener("DOMContentLoaded", buildTable());
+
+
+            function addPlayerColumn(player, playerIndex) {
+                console.log("addPlayerColumn");
+                console.log(player);
+
+                let table = document.querySelector("table");
+                let nameRow = document.getElementById("nameRow");
+                let cell = document.createElement("td");
+                cell.classList.add(`color-cell`);
+                // cell.id = `name${player.name}`;
+
+                // set the color
+                let colorIndex = player.colorIndex;
+                cell.style.backgroundColor = colorValues[colorIndex];
+                cell.style.color = textColors[colorIndex];
+
+                // set the name
+                cell.innerText = player.name;
+                cell.onclick = function () { openForm(player, playerIndex); };
+                nameRow.appendChild(cell);
+
+                // set the width
+                cell.style.width = "100px";
+
+                // add the score cells
+                for (let race = 0; race < scoreCard.races; race++) {
+                    let row = document.getElementById(`race${race + 1}`);
+                    if (!row) {
+                        console.log(`race${race + 1} not found`);
+                        continue;
+                    }
+                    let cell = document.createElement("td");
+                    cell.onclick = function () { raceCellClick(player, race); };
+                    cell.innerText = placeString(player.place[race]);
+                    row.appendChild(cell);
+                }
+
+                // add the total cell
+                let totalRow = document.getElementById("totalRow");
+                let totalCell = document.createElement("td");
+                totalCell.id = `total_${player}`;
+                totalCell.innerText = player.total;
+                totalRow.appendChild(totalCell);
+            }
+
+
+            function buildTable() {
+                console.log("DOMContentLoaded");
+                let table = document.querySelector("table");
+                table.id = "scoreTable";
+
+                let nameRow = document.createElement("tr");
+                nameRow.id = "nameRow";
+                nameRow.appendChild(document.createElement("td"));
+                table.appendChild(nameRow);
+
+                for (let race = 1; race <= defaultScoreCard.races; race++) {
+                    let row = document.createElement("tr");
+                    row.id = `race${race}`;
+                    let raceRowHeaderCell = document.createElement("td");
+                    raceRowHeaderCell.style.width = "50px";
+                    raceRowHeaderCell.innerText = `Race ${race}`;
+                    row.appendChild(raceRowHeaderCell);
+                    table.appendChild(row);
+                }
+
+                // Add total row
+                let totalRow = document.createElement("tr");
+                totalRow.id = "totalRow";
+                let totalCell = document.createElement("td")
+                totalCell.innerText = "Total";
+                totalRow.appendChild(totalCell);
+                table.appendChild(totalRow);
+
+                for (let i = 0; i < scoreCard.scores.length; i++) {
+                    console.log(`i = ${i}`);
+                    addPlayerColumn(scoreCard.scores[i], i);
+                }
+            };
+
+            function saveScores() {
+                console.log("saveScores");
+                document.cookie = `scoreCard=${JSON.stringify(scoreCard)}; path=/; max-age=31536000`;
+                console.log(document.cookie);
+            }
+
+            function loadScores() {
+                return;
+                console.log("loadScores");
+                console.log(document.cookie);
+                let cookies = document.cookie.split('; ');
+                console.log(cookies);
+                let scores = cookies.find(row => row.startsWith('scoreCard='));
+                console.log(scores);
+                if (scores) {
+                    scoreCard = JSON.parse(scores.split('=')[1]);
+                } else {
+                    scoreCard = JSON.parse(JSON.stringify(defaultScoreCard));
+                }
+                rebuildTable();
+            }
+            function rebuildTable() {
+                // clear the table
+                let table = document.getElementById("scoreTable");
+                while (table.firstChild) {
+                    table.removeChild(table.firstChild);
+                }
+                console.log(scoreCard);
+                // rebuild the table
+                buildTable();
+            }
+
+            function raceCellClick(player, race) {
+                let cell = event.target;
+                let place = player.place[race]
+                if (place === 0) {
+                    for (let i = 1; i <= 8; i++) {
+                        let taken = false;
+                        for (let score of scoreCard.scores) {
+                            if (score.place[race] === i) {
+                                taken = true;
+                                break;
                             }
                         }
+                        if (!taken) {
+                            place = i;
+                            break;
+                        }
                     }
+                    player.place[race] = place;
+
+                    let total = 0;
+                    for (let place of player.place) {
+                        total += placePoints[place];
+                    }
+                    player.total = total;
+
+                    rebuildTable();
+                } else {
+
+                    player.place[race] = 0;
+
+                    let total = 0;
+                    for (let place of player.place) {
+                        total += placePoints[place];
+                    }
+                    player.total = total;
+
+                    rebuildTable();
+
                 }
             }
 
-            function clearNames() {
+
+            function clearScores() {
+                if (confirm("Are you sure you want to clear scores?")) {
+                    for (score of scoreCard.scores) {
+                        for (i = 0; i < score.place.length; i++) {
+                            score.place[i] = 0;
+                        }
+                        score.total = 0;
+                    }
+                    rebuildTable();
+                }
+            }
+
+            function resetScoreCard() {
                 if (confirm("Are you sure you want to clear the player names?")) {
-                    for (let player = 1; player <= 8; player++) {
-
-                        document.getElementById(`total_${player}`).innerText = "0";
-                        // document.getElementById(`name${player}`).value = "";
-                    }
+                    scoreCard = JSON.parse(JSON.stringify(defaultScoreCard));
+                    rebuildTable();
                 }
             }
 
-            function openForm(player) {
-                let cell = document.getElementById(`name${player}`);
+            function openForm(player, playerIndex) {
+                let cell = event.target;
                 let form = document.getElementById("myForm");
                 let formNameField = document.getElementById("formNameField");
-                formNameField.value = cell.innerText;
+                formNameField.value = player.name;
+                colorIndex = player.colorIndex;
+
                 var colorButton = document.getElementById("colorButton");
-                colorButton.style.backgroundColor = cell.style.backgroundColor;
-                colorButton.style.color = cell.style.color;
+                formNameField.style.backgroundColor = colorValues[colorIndex];
+                formNameField.style.color = textColors[colorIndex];
                 colorButton.onclick = function () {
-                    let colorIndex = colorValues.indexOf(colorButton.style.backgroundColor);
                     colorIndex = (colorIndex + 1) % colorValues.length;
-                    colorButton.style.backgroundColor = colorValues[colorIndex];
-                    colorButton.style.color = textColors[colorIndex];
-                    saveScores();
+                    formNameField.style.backgroundColor = colorValues[colorIndex];
+                    formNameField.style.color = textColors[colorIndex];
                 };
 
-                document.getElementById("removePlayer").onclick = function () {
-                    hideColumn(player);
-                    saveScores();
-                    closeForm();
-                };
+                document.getElementById("removePlayer").checked = false;
+
                 var playerFormSaveButton = document.getElementById("playerFormSaveButton");
                 playerFormSaveButton.onclick = function () {
-                    cell.innerText = formNameField.value;
-                    cell.style.backgroundColor = colorButton.style.backgroundColor;
-                    cell.style.color = colorButton.style.color;
+                    player.name = formNameField.value;
+                    player.colorIndex = colorIndex;
+                    if (document.getElementById("removePlayer").checked) {
+                        scoreCard.scores.splice(playerIndex, 1);
+                        document.getElementById("addRacer").disabled = false;
+                    }
                     saveScores();
                     closeForm();
+                    rebuildTable();
                 };
 
                 // formNameField.style.backgroundColor = cell.style.backgroundColor;
@@ -339,12 +377,76 @@
                 document.getElementById("myForm").style.display = "none";
             }
 
+            function moveColumn(tableId, sourceIndex, targetIndex) {
+                const table = document.getElementById(tableId);
+                const rows = table.rows;
+
+                for (let i = 0; i < rows.length; i++) {
+                    const cells = rows[i].cells;
+                    const cellToMove = cells[sourceIndex];
+
+                    rows[i].removeChild(cellToMove);
+
+                    if (targetIndex < sourceIndex) {
+                        rows[i].insertBefore(cellToMove, cells[targetIndex]);
+                    } else {
+                        rows[i].insertBefore(cellToMove, cells[targetIndex + 1]);
+                    }
+                }
+            }
+
+            // Example usage:
+            // moveColumn('myTable', 1, 0); // Move column 2 (index 1) to position 1 (index 0)
+            function SortColumnsByTotal() {
+                scoreCard.scores.sort((a, b) => {
+                    if (a.total === b.total) {
+                        for (i = a.place.length - 1; i >= 0; i--) {
+                            if (a.place[i] !== b.place[i]) {
+                                return a.place[i] - b.place[i];
+                            }
+                        }
+                    }
+                    return b.total - a.total;
+                });
+                saveScores();
+                rebuildTable();
+            }
+
+            function getUnusedColorIndex() {
+                let usedColors = scoreCard.scores.map(score => score.colorIndex);
+                for (let i = 0; i < colorValues.length; i++) {
+                    if (!usedColors.includes(i)) {
+                        return i;
+                    }
+                }
+                return 0;
+            }
+
+            function addRacer() {
+                colorIndex = getUnusedColorIndex();
+                let newRacer = {
+                    name: colorNames[colorIndex],
+                    colorIndex: colorIndex,
+                    place: [0, 0, 0],
+                    total: 0
+                };
+                playerIndex = scoreCard.scores.length;
+                scoreCard.scores.push(newRacer);
+                addPlayerColumn(newRacer, playerIndex);
+                saveScores();
+                if (playerIndex >= 7) {
+                    event.target.disabled = true;
+                }
+            }
 
         </script>
     </table>
     <button onclick="clearScores()">Clear Scores</button>
-    <button onclick="clearNames()">Clear Names</button>
-    <button onclick="console.log('------------')">log</button>
+    <button id="addRacer" onclick="addRacer()">Add Racer</button>
+    <button onclick="resetScoreCard()">Reset Score Card</button>
+
+    <button onclick="SortColumnsByTotal()">Sort Columns by Total</button>
+
 
 
     <!-- The form -->
@@ -353,8 +455,8 @@
         <form class="form-container">
             <label for="name"><b>Player Name</b></label>
             <input id="formNameField" type="text" name="name" required>
+            <input type="checkbox" id="removePlayer"> Remove Player
             <button id="colorButton" type="button" class="btn" onclick="">Change Color</button>
-            <button id="removePlayer" type="button" class="btn" onclick="">Remove Player</button>
             <button id="playerFormSaveButton" type="button" class="btn">Save</button>
             <button type="button" class="btn cancel" onclick="closeForm()">Cancel</button>
         </form>

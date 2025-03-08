@@ -537,11 +537,15 @@
             }
 
             function addRacer() {
-                colorIndex = getUnusedColorIndex();
+                let colorIndex = getUnusedColorIndex();
+                let place = [];
+                for (let i = 0; i < scoreCard.races; i++) {
+                    place.push(0);
+                }
                 let newRacer = {
                     name: colorNames[colorIndex],
                     colorIndex: colorIndex,
-                    place: [0, 0, 0],
+                    place: place,
                     total: 0
                 };
                 playerIndex = scoreCard.scores.length;

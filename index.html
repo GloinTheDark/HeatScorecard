@@ -263,19 +263,16 @@
 
             function saveScores() {
                 console.log("--- saveScores");
-                document.cookie = `scoreCard=${JSON.stringify(scoreCard)}; path=/; max-age=31536000`;
-                // console.log(document.cookie);
+                saveString = JSON.stringify(scoreCard);
+                localStorage.setItem("scoreCard", saveString);
             }
 
             function loadScores() {
                 console.log("--- loadScores");
-                // console.log(document.cookie);
-                let cookies = document.cookie.split('; ');
-                // console.log(cookies);
-                let scores = cookies.find(row => row.startsWith('scoreCard='));
-                // console.log(scores);
+                scores = localStorage.getItem("scoreCard");
+                console.log(scores);
                 if (scores) {
-                    scoreCard = JSON.parse(scores.split('=')[1]);
+                    scoreCard = JSON.parse(scores);
                 } else {
                     scoreCard = JSON.parse(JSON.stringify(defaultScoreCard));
                 }
@@ -586,7 +583,12 @@
     <br>
     <button onclick="clearScores()">Clear Scores</button>
     <button onclick="resetScoreCard()">Reset Score Card</button>
-    <img src="qr-code.png" alt="QR Code" style="display: block; margin: 20px 0; width: 200px; height: 200px; float: left;">
+    <br>
+    <br>
+    Scan this code to share the link to this page.
+    <br>
+    <img src="qr-code.png" alt="QR Code"
+        style="display: block; margin: 20px 0; width: 200px; height: 200px; float: left;">
 
     <!-- The form -->
     <div class="form-popup" id="myForm">

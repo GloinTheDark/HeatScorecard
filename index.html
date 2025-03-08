@@ -75,7 +75,9 @@
             /* max-width: 300px; */
             padding: 10px;
             background-color: white;
+            border: 3px solid #333;
         }
+
 
         /* Full-width input fields */
         .form-container input[type=text] {
@@ -93,10 +95,24 @@
             outline: none;
         }
 
-        /* Ensure checkboxes are visible on Safari on iPhone */
-        input[type="checkbox"] {
-            -webkit-appearance: checkbox;
-            appearance: checkbox;
+        .popup {
+            position: fixed;
+            top: 30%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            border: 2px solid black;
+            padding: 20px;
+            z-index: 10;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .popup button {
+            margin: 5px;
+        }
+
+        .popup input {
+            margin-top: 10px;
         }
     </style>
 </head>
@@ -143,6 +159,28 @@
 
             document.addEventListener("DOMContentLoaded", buildTable());
 
+
+            let gThingToClose = null;
+            let gThingCloser = null;
+
+            function closeDeezNutz(thingToClose, thingCloser) {
+                console.log("closeDeezNutz");
+                window.setTimeout(function () {
+                    gThingToClose = thingToClose;
+                    gThingCloser = thingCloser;
+                }, 0);
+            }
+
+            window.onclick = function (event) {
+                if (gThingToClose && gThingCloser) {
+                    rect = gThingToClose.getBoundingClientRect();
+                    if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) {
+                        gThingCloser();
+                        gThingToClose = null;
+                        gThingCloser = null;
+                    }
+                }
+            }
 
             function addPlayerColumn(player, playerIndex) {
                 console.log("--- addPlayerColumn");
@@ -311,7 +349,6 @@
             function openForm(player, playerIndex) {
                 console.log("--- openForm");
                 globalPlayerIndex = playerIndex;
-                globalFormOpenEvent = event;
                 let cell = event.target;
                 let form = document.getElementById("myForm");
                 let formNameField = document.getElementById("formNameField");
@@ -327,11 +364,18 @@
                 // form.style.left = `${rect.left}px`;
 
                 form.style.position = "fixed";
-                form.style.top = "50%";
+                form.style.top = "30%";
                 form.style.left = "50%";
                 form.style.transform = "translate(-50%, -50%)";
 
                 form.style.display = "block";
+
+                closeDeezNutz(form, function () {
+                    if (form.style.display === "block") {
+                        form.style.display = "none";
+                    }
+                });
+
             }
 
             function closeForm() {
@@ -341,44 +385,26 @@
             function popupTextInputPrompt(message, defaultText, action, colorIndex) {
                 let popup = document.createElement("div");
                 popup.classList.add("popup");
-                let style = document.createElement("style");
-                style.innerHTML = `
-                    .popup {
-                        position: fixed;
-                        top: 30%;
-                        left: 50%;
-                        transform: translate(-50%, -50%);
-                        background-color: white;
-                        border: 2px solid black;
-                        padding: 20px;
-                        z-index: 10;
-                        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-                    }
-                    .popup input {
-                        margin-top: 10px;
-                    }
-                `;
-                document.head.appendChild(style);
                 popup.innerHTML = message + "<br>";
                 let input = document.createElement("input");
                 input.style.backgroundColor = colorValues[colorIndex];
                 input.style.color = textColors[colorIndex];
+                input.style.padding = "10px";
                 input.type = "text";
                 input.value = defaultText;
-                input.select();
+                window.setTimeout(function () { input.focus(); }, 0);
                 input.onfocus = function () { this.select(); };
-                input.onblur = function () { this.select(); };
+
                 input.onkeydown = function (event) {
-                    if (event.key === "Enter") {
-                        if (action) action(input.value);
-                        document.body.removeChild(popup);
-                        document.head.removeChild(style);
-                    }
-                    if (event.key === "Escape") {
-                        document.body.removeChild(popup);
-                        document.head.removeChild(style);
+                    switch (event.key) {
+                        case "Enter":
+                            if (action) action(input.value);
+                        case "Escape":
+                            document.body.removeChild(popup);
+                            break;
                     }
                 };
+
                 popup.appendChild(input);
                 document.body.appendChild(popup);
 
@@ -389,7 +415,6 @@
                 buttonElement.onclick = function () {
                     if (action) action(input.value);
                     document.body.removeChild(popup);
-                    document.head.removeChild(style);
                 };
                 popup.appendChild(buttonElement);
 
@@ -397,34 +422,20 @@
                 cancelButton.innerText = "Cancel";
                 cancelButton.onclick = function () {
                     document.body.removeChild(popup);
-                    document.head.removeChild(style);
                 };
                 popup.appendChild(cancelButton);
-
                 popup.style.display = "block";
+
+                closeDeezNutz(popup, function () {
+                    if (document.body.contains(popup)) {
+                        document.body.removeChild(popup);
+                    }
+                });
             }
 
             function popupButtonWindow(message, buttons) {
                 let popup = document.createElement("div");
                 popup.classList.add("popup");
-                let style = document.createElement("style");
-                style.innerHTML = `
-                    .popup {
-                        position: fixed;
-                        top: 30%;
-                        left: 50%;
-                        transform: translate(-50%, -50%);
-                        background-color: white;
-                        border: 2px solid black;
-                        padding: 20px;
-                        z-index: 10;
-                        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-                    }
-                    .popup button {
-                        margin: 5px;
-                    }
-                `;
-                document.head.appendChild(style);
                 popup.innerHTML = message + "<br>";
                 document.body.appendChild(popup);
 
@@ -438,11 +449,16 @@
                     buttonElement.onclick = function () {
                         if (button.action) button.action();
                         document.body.removeChild(popup);
-                        document.head.removeChild(style);
                     };
                     popup.appendChild(buttonElement);
                 }
                 popup.style.display = "block";
+
+                closeDeezNutz(popup, function () {
+                    if (document.body.contains(popup)) {
+                        document.body.removeChild(popup);
+                    }
+                });
             }
 
             function renamePlayer() {
@@ -569,17 +585,11 @@
 
     <!-- The form -->
     <div class="form-popup" id="myForm">
-        <style>
-            .form-container {
-                border: 3px solid #333;
-                /* Darker border color */
-            }
-        </style>
         <!-- <form action="/action_page.php" class="form-container"> -->
         <form class="form-container">
             <label for="name"><b>Player Name</b></label>
             <label id="formNameField"
-                style="display: block; padding: 15px; margin: 5px 0 22px 0; border: none;"></label>
+                style="display: block; padding: 10px; margin: 5px 0 1px 0; border: 1px black;"></label>
             <button type="button" onclick="renamePlayer()">Rename Player</button>
             <button id="colorButton" type="button" onclick="{closeForm(); chooseColor()}">Change Color</button>
             <button type="button"
@@ -588,19 +598,6 @@
             </button>
             <br>
             <button type="button" onclick="closeForm()">Back</button>
-            <script>
-                window.onclick = function (event) {
-                    let form = document.getElementById("myForm");
-                    if (form.style.display === "block" && !form.contains(event.target) && event !== globalFormOpenEvent) {
-                        let rect = form.getBoundingClientRect();
-                        let relativeX = event.clientX - rect.left;
-                        let relativeY = event.clientY - rect.top;
-                        if (relativeX < 0 || relativeX > rect.width || relativeY < 0 || relativeY > rect.height) {
-                            closeForm();
-                        }
-                    }
-                }
-            </script>
         </form>
     </div>
 </body>

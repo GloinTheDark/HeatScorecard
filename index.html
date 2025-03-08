@@ -72,14 +72,13 @@
 
         /* Add styles to the form container */
         .form-container {
-            max-width: 300px;
+            /* max-width: 300px; */
             padding: 10px;
             background-color: white;
         }
 
         /* Full-width input fields */
-        .form-container input[type=text],
-        .form-container input[type=password] {
+        .form-container input[type=text] {
             width: 100%;
             padding: 15px;
             margin: 5px 0 22px 0;
@@ -94,29 +93,6 @@
             outline: none;
         }
 
-        /* Set a style for the submit/login button */
-        .form-container .btn {
-            background-color: #04AA6D;
-            color: white;
-            padding: 16px 20px;
-            border: none;
-            cursor: pointer;
-            width: 100%;
-            margin-bottom: 10px;
-            opacity: 0.8;
-        }
-
-        /* Add a red background color to the cancel button */
-        .form-container .cancel {
-            background-color: red;
-        }
-
-        /* Add some hover effects to buttons */
-        .form-container .btn:hover,
-        .open-button:hover {
-            opacity: 1;
-        }
-
         /* Ensure checkboxes are visible on Safari on iPhone */
         input[type="checkbox"] {
             -webkit-appearance: checkbox;
@@ -127,7 +103,7 @@
 
 
 <body onload="loadScores()">
-    <h2>Heat:<br>Pedal to the Metal<br>Online Score Card</h2>
+    <h2>HEAT:<br>PEDAL TO THE METAL<br>Online Score Card</h2>
     <table>
 
         <script>
@@ -159,6 +135,7 @@
             }
 
             let scoreCard = JSON.parse(JSON.stringify(defaultScoreCard));
+            let globalPlayerIndex = 0;
 
             let colorNames = ["Yellow", "Blue", "Green", "Red", "Black", "Gray", "Orange", "Purple"];
             let colorValues = ["yellow", "blue", "green", "red", "black", "lightgray", "orange", "purple"];
@@ -332,37 +309,17 @@
             }
 
             function openForm(player, playerIndex) {
+                console.log("--- openForm");
+                globalPlayerIndex = playerIndex;
+                globalFormOpenEvent = event;
                 let cell = event.target;
                 let form = document.getElementById("myForm");
                 let formNameField = document.getElementById("formNameField");
-                formNameField.value = player.name;
+                formNameField.innerText = player.name;
                 colorIndex = player.colorIndex;
 
-                var colorButton = document.getElementById("colorButton");
                 formNameField.style.backgroundColor = colorValues[colorIndex];
                 formNameField.style.color = textColors[colorIndex];
-                colorButton.onclick = function () {
-                    colorIndex = (colorIndex + 1) % colorValues.length;
-                    formNameField.style.backgroundColor = colorValues[colorIndex];
-                    formNameField.style.color = textColors[colorIndex];
-                };
-
-                document.getElementById("removePlayer").checked = false;
-
-                var playerFormSaveButton = document.getElementById("playerFormSaveButton");
-                playerFormSaveButton.onclick = function () {
-                    player.name = formNameField.value;
-                    player.colorIndex = colorIndex;
-                    if (document.getElementById("removePlayer").checked) {
-                        scoreCard.scores.splice(playerIndex, 1);
-                        document.getElementById("addRacer").disabled = false;
-                    }
-                    closeForm();
-                    saveScores();
-                    rebuildTable();
-                };
-
-                // formNameField.style.backgroundColor = cell.style.backgroundColor;
 
                 // set the form top-left to cell top left
                 let rect = cell.getBoundingClientRect();
@@ -379,6 +336,134 @@
 
             function closeForm() {
                 document.getElementById("myForm").style.display = "none";
+            }
+
+            function popupTextInputPrompt(message, defaultText, action, colorIndex) {
+                let popup = document.createElement("div");
+                popup.classList.add("popup");
+                let style = document.createElement("style");
+                style.innerHTML = `
+                    .popup {
+                        position: fixed;
+                        top: 30%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        background-color: white;
+                        border: 2px solid black;
+                        padding: 20px;
+                        z-index: 10;
+                        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+                    }
+                    .popup input {
+                        margin-top: 10px;
+                    }
+                `;
+                document.head.appendChild(style);
+                popup.innerHTML = message + "<br>";
+                let input = document.createElement("input");
+                input.style.backgroundColor = colorValues[colorIndex];
+                input.style.color = textColors[colorIndex];
+                input.type = "text";
+                input.value = defaultText;
+                input.select();
+                input.onfocus = function () { this.select(); };
+                input.onblur = function () { this.select(); };
+                input.onkeydown = function (event) {
+                    if (event.key === "Enter") {
+                        if (action) action(input.value);
+                        document.body.removeChild(popup);
+                        document.head.removeChild(style);
+                    }
+                    if (event.key === "Escape") {
+                        document.body.removeChild(popup);
+                        document.head.removeChild(style);
+                    }
+                };
+                popup.appendChild(input);
+                document.body.appendChild(popup);
+
+                popup.appendChild(document.createElement("br"));
+
+                let buttonElement = document.createElement("button");
+                buttonElement.innerText = "OK";
+                buttonElement.onclick = function () {
+                    if (action) action(input.value);
+                    document.body.removeChild(popup);
+                    document.head.removeChild(style);
+                };
+                popup.appendChild(buttonElement);
+
+                let cancelButton = document.createElement("button");
+                cancelButton.innerText = "Cancel";
+                cancelButton.onclick = function () {
+                    document.body.removeChild(popup);
+                    document.head.removeChild(style);
+                };
+                popup.appendChild(cancelButton);
+
+                popup.style.display = "block";
+            }
+
+            function popupButtonWindow(message, buttons) {
+                let popup = document.createElement("div");
+                popup.classList.add("popup");
+                let style = document.createElement("style");
+                style.innerHTML = `
+                    .popup {
+                        position: fixed;
+                        top: 30%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        background-color: white;
+                        border: 2px solid black;
+                        padding: 20px;
+                        z-index: 10;
+                        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+                    }
+                    .popup button {
+                        margin: 5px;
+                    }
+                `;
+                document.head.appendChild(style);
+                popup.innerHTML = message + "<br>";
+                document.body.appendChild(popup);
+
+                for (let button of buttons) {
+                    let buttonElement = document.createElement("button");
+                    buttonElement.innerText = button.text;
+                    if (button.colorIndex !== undefined) {
+                        buttonElement.style.backgroundColor = colorValues[button.colorIndex];
+                        buttonElement.style.color = textColors[button.colorIndex];
+                    }
+                    buttonElement.onclick = function () {
+                        if (button.action) button.action();
+                        document.body.removeChild(popup);
+                        document.head.removeChild(style);
+                    };
+                    popup.appendChild(buttonElement);
+                }
+                popup.style.display = "block";
+            }
+
+            function renamePlayer() {
+                closeForm();
+                popupTextInputPrompt(
+                    "Enter new name for player:",
+                    scoreCard.scores[globalPlayerIndex].name,
+                    function (newName) {
+                        if (newName) {
+                            scoreCard.scores[globalPlayerIndex].name = newName;
+                            saveScores();
+                            rebuildTable();
+                        }
+                    }, scoreCard.scores[globalPlayerIndex].colorIndex);
+            }
+
+            function deletePlayer() {
+                console.log("--- deletePlayer");
+                scoreCard.scores.splice(globalPlayerIndex, 1);
+                saveScores();
+                rebuildTable();
             }
 
             function moveColumn(tableId, sourceIndex, targetIndex) {
@@ -452,6 +537,26 @@
                 }
             }
 
+            function chooseColor() {
+                let colorIndex = getUnusedColorIndex();
+                popupButtonWindow("Choose a color", [
+                    { text: "Yellow", action: () => { changeColor(0); }, colorIndex: 0 },
+                    { text: "Blue", action: () => { changeColor(1); }, colorIndex: 1 },
+                    { text: "Green", action: () => { changeColor(2); }, colorIndex: 2 },
+                    { text: "Red", action: () => { changeColor(3); }, colorIndex: 3 },
+                    { text: "Black", action: () => { changeColor(4); }, colorIndex: 4 },
+                    { text: "Gray", action: () => { changeColor(5); }, colorIndex: 5 },
+                    { text: "Orange", action: () => { changeColor(6); }, colorIndex: 6 },
+                    { text: "Purple", action: () => { changeColor(7); }, colorIndex: 7 }
+                ]);
+            }
+
+            function changeColor(colorIndex) {
+                scoreCard.scores[globalPlayerIndex].colorIndex = colorIndex;
+                saveScores();
+                rebuildTable();
+            }
+
         </script>
     </table>
 
@@ -461,8 +566,6 @@
     <br>
     <button onclick="clearScores()">Clear Scores</button>
     <button onclick="resetScoreCard()">Reset Score Card</button>
-
-
 
     <!-- The form -->
     <div class="form-popup" id="myForm">
@@ -475,12 +578,29 @@
         <!-- <form action="/action_page.php" class="form-container"> -->
         <form class="form-container">
             <label for="name"><b>Player Name</b></label>
-            <input id="formNameField" type="text" name="name" required
-                onkeydown="if(event.key === 'Enter') { event.preventDefault(); document.getElementById('playerFormSaveButton').click(); }">
-            <input type="checkbox" id="removePlayer"> Remove Player
-            <button id="colorButton" type="button" class="btn" onclick="">Change Color</button>
-            <button id="playerFormSaveButton" type="button" class="btn">Save</button>
-            <button type="button" class="btn cancel" onclick="closeForm()">Cancel</button>
+            <label id="formNameField"
+                style="display: block; padding: 15px; margin: 5px 0 22px 0; border: none;"></label>
+            <button type="button" onclick="renamePlayer()">Rename Player</button>
+            <button id="colorButton" type="button" onclick="{closeForm(); chooseColor()}">Change Color</button>
+            <button type="button"
+                onclick="{closeForm(); popupButtonWindow('Are you sure you want to delete player?', [{text: 'yes', action:deletePlayer}, {text:'no'}]);}">
+                Delete Player
+            </button>
+            <br>
+            <button type="button" onclick="closeForm()">Back</button>
+            <script>
+                window.onclick = function (event) {
+                    let form = document.getElementById("myForm");
+                    if (form.style.display === "block" && !form.contains(event.target) && event !== globalFormOpenEvent) {
+                        let rect = form.getBoundingClientRect();
+                        let relativeX = event.clientX - rect.left;
+                        let relativeY = event.clientY - rect.top;
+                        if (relativeX < 0 || relativeX > rect.width || relativeY < 0 || relativeY > rect.height) {
+                            closeForm();
+                        }
+                    }
+                }
+            </script>
         </form>
     </div>
 </body>

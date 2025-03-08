@@ -62,39 +62,6 @@
             width: 280px;
         }
 
-        /* The popup form - hidden by default */
-        .form-popup {
-            display: none;
-            position: fixed;
-            border: 3px solid #f1f1f1;
-            z-index: 9;
-        }
-
-        /* Add styles to the form container */
-        .form-container {
-            /* max-width: 300px; */
-            padding: 10px;
-            background-color: white;
-            border: 3px solid #333;
-        }
-
-
-        /* Full-width input fields */
-        .form-container input[type=text] {
-            width: 100%;
-            padding: 15px;
-            margin: 5px 0 22px 0;
-            border: none;
-            background: #f1f1f1;
-        }
-
-        /* When the inputs get focus, do something */
-        .form-container input[type=text]:focus,
-        .form-container input[type=password]:focus {
-            background-color: #ddd;
-            outline: none;
-        }
-
         .popup {
             position: fixed;
             top: 30%;
@@ -105,6 +72,7 @@
             padding: 20px;
             z-index: 10;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            display: block;
         }
 
         .popup button {
@@ -114,467 +82,507 @@
         .popup input {
             margin-top: 10px;
         }
+
+        .player-name {
+            /* font-size: 20px; */
+            /* font-weight: bold; */
+            /* cursor: pointer; */
+            display: block;
+            padding: 10px;
+            margin: 5px 0 1px 0;
+            border: 1px solid black;
+            width: 100px;
+            text-align: center;
+        }
     </style>
+    <script>
+        console.log("--- Table Initializing");
+        let defaultScoreCard = {
+            races: 3,
+            scores: [
+                {
+                    name: "Red",
+                    colorIndex: 3,
+                    place: [0, 0, 0],
+                    total: 0
+                },
+                {
+                    name: "Blue",
+                    colorIndex: 1,
+                    place: [0, 0, 0],
+                    total: 0
+                },
+            ]
+        };
+
+        placeNames = ["", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "DNF"];
+        placePoints = [0, 9, 6, 4, 3, 2, 1, 0, 0, 0];
+
+        function placeString(place) {
+            if (place === 0) return "";
+            return `${placeNames[place]} (${placePoints[place]})`;
+        }
+
+        let scoreCard = JSON.parse(JSON.stringify(defaultScoreCard));
+
+        let colorNames = ["Yellow", "Blue", "Green", "Red", "Black", "Gray", "Orange", "Purple"];
+        let colorValues = ["yellow", "blue", "green", "red", "black", "lightgray", "orange", "purple"];
+        let textColors = ["black", "white", "white", "white", "white", "black", "black", "white"];
+
+        // document.addEventListener("DOMContentLoaded", buildTable());
+
+
+        let gThingToClose = null;
+        let gThingCloser = null;
+
+        function closeDeezNutz(thingToClose, thingCloser) {
+            console.log("closeDeezNutz");
+            window.setTimeout(function () {
+                gThingToClose = thingToClose;
+                gThingCloser = thingCloser;
+            }, 0);
+        }
+
+        window.onclick = function (event) {
+            if (gThingToClose && gThingCloser) {
+                rect = gThingToClose.getBoundingClientRect();
+                if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) {
+                    gThingCloser();
+                    gThingToClose = null;
+                    gThingCloser = null;
+                }
+            }
+        }
+
+        function addPlayerColumn(player, playerIndex) {
+            console.log("--- addPlayerColumn");
+            // console.log(player);
+
+            let table = document.getElementById("scoreTable");
+            let nameRow = document.getElementById("nameRow");
+            let cell = document.createElement("td");
+            cell.classList.add(`color-cell`);
+            // cell.id = `name${player.name}`;
+
+            // set the color
+            let colorIndex = player.colorIndex;
+            cell.style.backgroundColor = colorValues[colorIndex];
+            cell.style.color = textColors[colorIndex];
+
+            // set the name
+            cell.innerText = player.name;
+            cell.onclick = function () { openForm(player, playerIndex); };
+            nameRow.appendChild(cell);
+
+            // set the width
+            cell.style.width = "100px";
+
+            // add the score cells
+            for (let race = 0; race < scoreCard.races; race++) {
+                let row = document.getElementById(`race${race + 1}`);
+                if (!row) {
+                    console.log(`race${race + 1} not found`);
+                    continue;
+                }
+                let cell = document.createElement("td");
+                cell.onclick = function () { raceCellClick(player, race); };
+                cell.innerText = placeString(player.place[race]);
+                row.appendChild(cell);
+            }
+
+            // add the total cell
+            let totalRow = document.getElementById("totalRow");
+            let totalCell = document.createElement("td");
+            totalCell.id = `total_${player}`;
+            totalCell.innerText = player.total;
+            totalRow.appendChild(totalCell);
+        }
+
+
+        function buildTable() {
+            console.log("--- buildTable");
+            let table = document.getElementById("scoreTable");
+
+            let nameRow = document.createElement("tr");
+            nameRow.id = "nameRow";
+            cell1 = document.createElement("td");
+            cell1.innerText = "1961";
+            nameRow.appendChild(cell1);
+            table.appendChild(nameRow);
+
+            for (let race = 1; race <= scoreCard.races; race++) {
+                let row = document.createElement("tr");
+                row.id = `race${race}`;
+                let raceRowHeaderCell = document.createElement("td");
+                raceRowHeaderCell.style.width = "50px";
+                raceRowHeaderCell.innerText = `Race ${race}`;
+                row.appendChild(raceRowHeaderCell);
+                table.appendChild(row);
+            }
+
+            // Add total row
+            let totalRow = document.createElement("tr");
+            totalRow.id = "totalRow";
+            let totalCell = document.createElement("td")
+            totalCell.innerText = "Total";
+            totalCell.onclick = function () { SortColumnsByTotal(); };
+            totalRow.appendChild(totalCell);
+            table.appendChild(totalRow);
+
+            for (let i = 0; i < scoreCard.scores.length; i++) {
+                addPlayerColumn(scoreCard.scores[i], i);
+            }
+        };
+
+        function saveScores() {
+            console.log("--- saveScores");
+            saveString = JSON.stringify(scoreCard);
+            localStorage.setItem("scoreCard", saveString);
+        }
+
+        function loadScores() {
+            console.log("--- loadScores");
+            scores = localStorage.getItem("scoreCard");
+            console.log(scores);
+            if (scores) {
+                scoreCard = JSON.parse(scores);
+            } else {
+                scoreCard = JSON.parse(JSON.stringify(defaultScoreCard));
+            }
+            rebuildTable();
+        }
+        function rebuildTable() {
+            console.log("--- rebuildTable");
+            // clear the table
+            let table = document.getElementById("scoreTable");
+            while (table.firstChild) {
+                table.removeChild(table.firstChild);
+            }
+            // console.log(scoreCard);
+            // rebuild the table
+            buildTable();
+        }
+
+        function raceCellClick(player, race) {
+            let cell = event.target;
+            let place = player.place[race]
+            if (place === 0) {
+                for (let i = 1; i <= 8; i++) {
+                    let taken = false;
+                    for (let score of scoreCard.scores) {
+                        if (score.place[race] === i) {
+                            taken = true;
+                            break;
+                        }
+                    }
+                    if (!taken) {
+                        place = i;
+                        break;
+                    }
+                }
+            } else {
+                place = 0;
+            }
+            player.place[race] = place;
+
+            let total = 0;
+            for (let place of player.place) {
+                total += placePoints[place];
+            }
+            player.total = total;
+            saveScores();
+            rebuildTable();
+        }
+
+
+        function clearScores() {
+            if (confirm("Are you sure you want to clear scores?")) {
+                for (score of scoreCard.scores) {
+                    for (i = 0; i < score.place.length; i++) {
+                        score.place[i] = 0;
+                    }
+                    score.total = 0;
+                }
+                saveScores();
+                rebuildTable();
+            }
+        }
+
+        function resetScoreCard() {
+            if (confirm("Are you sure you want to clear the player names?")) {
+                scoreCard = JSON.parse(JSON.stringify(defaultScoreCard));
+                saveScores();
+                rebuildTable();
+            }
+        }
+
+        function popupTextInputPrompt(message, defaultText, action, colorIndex) {
+            let popup = document.createElement("div");
+            popup.classList.add("popup");
+            popup.innerHTML = message + "<br>";
+            let input = document.createElement("input");
+            input.style.backgroundColor = colorValues[colorIndex];
+            input.style.color = textColors[colorIndex];
+            input.style.padding = "10px";
+            input.type = "text";
+            input.value = defaultText;
+            window.setTimeout(function () { input.focus(); }, 0);
+            input.onfocus = function () { this.select(); };
+
+            input.onkeydown = function (event) {
+                switch (event.key) {
+                    case "Enter":
+                        if (action) action(input.value);
+                    case "Escape":
+                        document.body.removeChild(popup);
+                        break;
+                }
+            };
+
+            popup.appendChild(input);
+            document.body.appendChild(popup);
+
+            popup.appendChild(document.createElement("br"));
+
+            let buttonElement = document.createElement("button");
+            buttonElement.innerText = "OK";
+            buttonElement.onclick = function () {
+                if (action) action(input.value);
+                document.body.removeChild(popup);
+            };
+            popup.appendChild(buttonElement);
+
+            let cancelButton = document.createElement("button");
+            cancelButton.innerText = "Cancel";
+            cancelButton.onclick = function () {
+                document.body.removeChild(popup);
+            };
+            popup.appendChild(cancelButton);
+            popup.style.display = "block";
+
+            closeDeezNutz(popup, function () {
+                if (document.body.contains(popup)) {
+                    document.body.removeChild(popup);
+                }
+            });
+        }
+
+        function popupButtonWindow(message, buttons) {
+            let popup = document.createElement("div");
+            popup.classList.add("popup");
+            popup.innerHTML = message + "<br>";
+            document.body.appendChild(popup);
+
+            for (let button of buttons) {
+                let buttonElement = document.createElement("button");
+                buttonElement.innerText = button.text;
+                if (button.colorIndex !== undefined) {
+                    buttonElement.style.backgroundColor = colorValues[button.colorIndex];
+                    buttonElement.style.color = textColors[button.colorIndex];
+                }
+                buttonElement.onclick = function () {
+                    if (button.action) button.action();
+                    document.body.removeChild(popup);
+                };
+                popup.appendChild(buttonElement);
+            }
+            popup.style.display = "block";
+
+            closeDeezNutz(popup, function () {
+                if (document.body.contains(popup)) {
+                    document.body.removeChild(popup);
+                }
+            });
+        }
+
+        function renamePlayer(playerIndex) {
+            closeForm();
+            popupTextInputPrompt(
+                "Enter new name for player:",
+                scoreCard.scores[playerIndex].name,
+                function (newName) {
+                    if (newName) {
+                        scoreCard.scores[playerIndex].name = newName;
+                        saveScores();
+                        rebuildTable();
+                    }
+                }, scoreCard.scores[playerIndex].colorIndex);
+        }
+
+        function deletePlayer(playerIndex) {
+            console.log("--- deletePlayer");
+            scoreCard.scores.splice(playerIndex, 1);
+            saveScores();
+            rebuildTable();
+        }
+
+        function SortColumnsByTotal() {
+            scoreCard.scores.sort((a, b) => {
+                if (a.total === b.total) {
+                    for (i = a.place.length - 1; i >= 0; i--) {
+                        if (a.place[i] !== b.place[i]) {
+                            return a.place[i] - b.place[i];
+                        }
+                    }
+                }
+                return b.total - a.total;
+            });
+            saveScores();
+            rebuildTable();
+        }
+
+        function getUnusedColorIndex() {
+            let usedColors = scoreCard.scores.map(score => score.colorIndex);
+            for (let i = 0; i < colorValues.length; i++) {
+                if (!usedColors.includes(i)) {
+                    return i;
+                }
+            }
+            return 0;
+        }
+
+        function addRace() {
+            for (let score of scoreCard.scores) {
+                score.place.push(0);
+            }
+            scoreCard.races += 1;
+            saveScores();
+            rebuildTable();
+        }
+
+        function addRacer() {
+            let colorIndex = getUnusedColorIndex();
+            let place = [];
+            for (let i = 0; i < scoreCard.races; i++) {
+                place.push(0);
+            }
+            let newRacer = {
+                name: colorNames[colorIndex],
+                colorIndex: colorIndex,
+                place: place,
+                total: 0
+            };
+            playerIndex = scoreCard.scores.length;
+            scoreCard.scores.push(newRacer);
+            addPlayerColumn(newRacer, playerIndex);
+            saveScores();
+            if (playerIndex >= 7) {
+                event.target.disabled = true;
+            }
+        }
+
+        function chooseColor(playerIndex) {
+            let colorIndex = getUnusedColorIndex();
+            popupButtonWindow("Choose a color", [
+                { text: "Yellow", action: () => { changeColor(0, playerIndex); }, colorIndex: 0 },
+                { text: "Blue", action: () => { changeColor(1, playerIndex); }, colorIndex: 1 },
+                { text: "Green", action: () => { changeColor(2, playerIndex); }, colorIndex: 2 },
+                { text: "Red", action: () => { changeColor(3, playerIndex); }, colorIndex: 3 },
+                { text: "Black", action: () => { changeColor(4, playerIndex); }, colorIndex: 4 },
+                { text: "Gray", action: () => { changeColor(5, playerIndex); }, colorIndex: 5 },
+                { text: "Orange", action: () => { changeColor(6, playerIndex); }, colorIndex: 6 },
+                { text: "Purple", action: () => { changeColor(7, playerIndex); }, colorIndex: 7 }
+
+            ]);
+        }
+
+        function changeColor(colorIndex, playerIndex) {
+            scoreCard.scores[playerIndex].colorIndex = colorIndex;
+            saveScores();
+            rebuildTable();
+        }
+
+        function openForm(player, playerIndex) {
+            console.log("--- openForm");
+
+            let popup = document.createElement("div");
+            popup.id = "myForm";
+            popup.classList.add("popup");
+
+
+            let label1 = document.createElement("label");
+            label1.innerText = "Player Name:";
+            popup.appendChild(label1);
+
+            let nameField = document.createElement("label");
+            nameField.id = "formNameField";
+            nameField.onclick = function () {
+                renamePlayer(playerIndex);
+            };
+            nameField.classList.add("player-name");
+            nameField.style.backgroundColor = colorValues[player.colorIndex];
+            nameField.style.color = textColors[player.colorIndex];
+
+            nameField.innerText = player.name;
+            popup.appendChild(nameField);
+
+            popup.appendChild(document.createElement("br"));
+
+            // <button type="button" onclick="renamePlayer()">Rename Player</button>
+            button1 = document.createElement("button");
+            button1.innerText = "Rename Player";
+            button1.onclick = function () {
+                renamePlayer(playerIndex);
+            };
+            popup.appendChild(button1);
+
+            // <button id="colorButton" type="button" onclick="{closeForm(); chooseColor()}">Change Color</button>
+            button2 = document.createElement("button");
+            button2.innerText = "Change Color";
+            button2.onclick = function () {
+                closeForm();
+                chooseColor(playerIndex);
+            };
+            popup.appendChild(button2);
+
+            // <button type="button"
+            //     onclick="{closeForm(); popupButtonWindow('Are you sure you want to delete player?', [{text: 'yes', action:deletePlayer}, {text:'no'}]);}">
+            //     Delete Player
+            // </button>
+            button3 = document.createElement("button");
+            button3.innerText = "Delete Player";
+            button3.onclick = function () {
+                closeForm();
+                popupButtonWindow("Are you sure you want to delete player?", [
+                    { text: "yes", action: function () { deletePlayer(playerIndex); } },
+                    { text: "no" }
+                ]);
+            };
+            popup.appendChild(button3);
+
+            // <br>
+            popup.appendChild(document.createElement("br"));
+
+            // <button type="button" onclick="closeForm()">Back</button>
+            button4 = document.createElement("button");
+            button4.innerText = "Back";
+            button4.onclick = function () {
+                closeForm();
+            };
+            popup.appendChild(button4);
+
+            document.body.appendChild(popup);
+
+            closeDeezNutz(popup, function () {
+                if (document.body.contains(popup)) {
+                    document.body.removeChild(popup);
+                }
+            });
+        }
+        function closeForm() {
+            let popup = document.getElementById("myForm");
+            if (popup) {
+                document.body.removeChild(popup);
+            }
+        }
+    </script>
 </head>
 
 
 <body onload="loadScores()">
+
     <h2>HEAT:<br>PEDAL TO THE METAL<br>Online Score Card</h2>
-    <table>
-
-        <script>
-            console.log("--- Table Initializing");
-            let defaultScoreCard = {
-                races: 3,
-                scores: [
-                    {
-                        name: "Red",
-                        colorIndex: 3,
-                        place: [0, 0, 0],
-                        total: 0
-                    },
-                    {
-                        name: "Blue",
-                        colorIndex: 1,
-                        place: [0, 0, 0],
-                        total: 0
-                    },
-                ]
-            };
-
-            placeNames = ["", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "DNF"];
-            placePoints = [0, 9, 6, 4, 3, 2, 1, 0, 0, 0];
-
-            function placeString(place) {
-                if (place === 0) return "";
-                return `${placeNames[place]} (${placePoints[place]})`;
-            }
-
-            let scoreCard = JSON.parse(JSON.stringify(defaultScoreCard));
-            let globalPlayerIndex = 0;
-
-            let colorNames = ["Yellow", "Blue", "Green", "Red", "Black", "Gray", "Orange", "Purple"];
-            let colorValues = ["yellow", "blue", "green", "red", "black", "lightgray", "orange", "purple"];
-            let textColors = ["black", "white", "white", "white", "white", "black", "black", "white"];
-
-            document.addEventListener("DOMContentLoaded", buildTable());
-
-
-            let gThingToClose = null;
-            let gThingCloser = null;
-
-            function closeDeezNutz(thingToClose, thingCloser) {
-                console.log("closeDeezNutz");
-                window.setTimeout(function () {
-                    gThingToClose = thingToClose;
-                    gThingCloser = thingCloser;
-                }, 0);
-            }
-
-            window.onclick = function (event) {
-                if (gThingToClose && gThingCloser) {
-                    rect = gThingToClose.getBoundingClientRect();
-                    if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) {
-                        gThingCloser();
-                        gThingToClose = null;
-                        gThingCloser = null;
-                    }
-                }
-            }
-
-            function addPlayerColumn(player, playerIndex) {
-                console.log("--- addPlayerColumn");
-                // console.log(player);
-
-                let table = document.querySelector("table");
-                let nameRow = document.getElementById("nameRow");
-                let cell = document.createElement("td");
-                cell.classList.add(`color-cell`);
-                // cell.id = `name${player.name}`;
-
-                // set the color
-                let colorIndex = player.colorIndex;
-                cell.style.backgroundColor = colorValues[colorIndex];
-                cell.style.color = textColors[colorIndex];
-
-                // set the name
-                cell.innerText = player.name;
-                cell.onclick = function () { openForm(player, playerIndex); };
-                nameRow.appendChild(cell);
-
-                // set the width
-                cell.style.width = "100px";
-
-                // add the score cells
-                for (let race = 0; race < scoreCard.races; race++) {
-                    let row = document.getElementById(`race${race + 1}`);
-                    if (!row) {
-                        console.log(`race${race + 1} not found`);
-                        continue;
-                    }
-                    let cell = document.createElement("td");
-                    cell.onclick = function () { raceCellClick(player, race); };
-                    cell.innerText = placeString(player.place[race]);
-                    row.appendChild(cell);
-                }
-
-                // add the total cell
-                let totalRow = document.getElementById("totalRow");
-                let totalCell = document.createElement("td");
-                totalCell.id = `total_${player}`;
-                totalCell.innerText = player.total;
-                totalRow.appendChild(totalCell);
-            }
-
-
-            function buildTable() {
-                console.log("--- buildTable");
-                let table = document.querySelector("table");
-                table.id = "scoreTable";
-
-                let nameRow = document.createElement("tr");
-                nameRow.id = "nameRow";
-                nameRow.appendChild(document.createElement("td"));
-                table.appendChild(nameRow);
-
-                for (let race = 1; race <= scoreCard.races; race++) {
-                    let row = document.createElement("tr");
-                    row.id = `race${race}`;
-                    let raceRowHeaderCell = document.createElement("td");
-                    raceRowHeaderCell.style.width = "50px";
-                    raceRowHeaderCell.innerText = `Race ${race}`;
-                    row.appendChild(raceRowHeaderCell);
-                    table.appendChild(row);
-                }
-
-                // Add total row
-                let totalRow = document.createElement("tr");
-                totalRow.id = "totalRow";
-                let totalCell = document.createElement("td")
-                totalCell.innerText = "Total";
-                totalCell.onclick = function () { SortColumnsByTotal(); };
-                totalRow.appendChild(totalCell);
-                table.appendChild(totalRow);
-
-                for (let i = 0; i < scoreCard.scores.length; i++) {
-                    addPlayerColumn(scoreCard.scores[i], i);
-                }
-            };
-
-            function saveScores() {
-                console.log("--- saveScores");
-                saveString = JSON.stringify(scoreCard);
-                localStorage.setItem("scoreCard", saveString);
-            }
-
-            function loadScores() {
-                console.log("--- loadScores");
-                scores = localStorage.getItem("scoreCard");
-                console.log(scores);
-                if (scores) {
-                    scoreCard = JSON.parse(scores);
-                } else {
-                    scoreCard = JSON.parse(JSON.stringify(defaultScoreCard));
-                }
-                rebuildTable();
-            }
-            function rebuildTable() {
-                console.log("--- rebuildTable");
-                // clear the table
-                let table = document.getElementById("scoreTable");
-                while (table.firstChild) {
-                    table.removeChild(table.firstChild);
-                }
-                // console.log(scoreCard);
-                // rebuild the table
-                buildTable();
-            }
-
-            function raceCellClick(player, race) {
-                let cell = event.target;
-                let place = player.place[race]
-                if (place === 0) {
-                    for (let i = 1; i <= 8; i++) {
-                        let taken = false;
-                        for (let score of scoreCard.scores) {
-                            if (score.place[race] === i) {
-                                taken = true;
-                                break;
-                            }
-                        }
-                        if (!taken) {
-                            place = i;
-                            break;
-                        }
-                    }
-                } else {
-                    place = 0;
-                }
-                player.place[race] = place;
-
-                let total = 0;
-                for (let place of player.place) {
-                    total += placePoints[place];
-                }
-                player.total = total;
-                saveScores();
-                rebuildTable();
-            }
-
-
-            function clearScores() {
-                if (confirm("Are you sure you want to clear scores?")) {
-                    for (score of scoreCard.scores) {
-                        for (i = 0; i < score.place.length; i++) {
-                            score.place[i] = 0;
-                        }
-                        score.total = 0;
-                    }
-                    saveScores();
-                    rebuildTable();
-                }
-            }
-
-            function resetScoreCard() {
-                if (confirm("Are you sure you want to clear the player names?")) {
-                    scoreCard = JSON.parse(JSON.stringify(defaultScoreCard));
-                    saveScores();
-                    rebuildTable();
-                }
-            }
-
-            function openForm(player, playerIndex) {
-                console.log("--- openForm");
-                globalPlayerIndex = playerIndex;
-                let cell = event.target;
-                let form = document.getElementById("myForm");
-                let formNameField = document.getElementById("formNameField");
-                formNameField.innerText = player.name;
-                colorIndex = player.colorIndex;
-
-                formNameField.style.backgroundColor = colorValues[colorIndex];
-                formNameField.style.color = textColors[colorIndex];
-
-                // set the form top-left to cell top left
-                let rect = cell.getBoundingClientRect();
-                // form.style.top = `${rect.bottom}px`;
-                // form.style.left = `${rect.left}px`;
-
-                form.style.position = "fixed";
-                form.style.top = "30%";
-                form.style.left = "50%";
-                form.style.transform = "translate(-50%, -50%)";
-
-                form.style.display = "block";
-
-                closeDeezNutz(form, function () {
-                    if (form.style.display === "block") {
-                        form.style.display = "none";
-                    }
-                });
-
-            }
-
-            function closeForm() {
-                document.getElementById("myForm").style.display = "none";
-            }
-
-            function popupTextInputPrompt(message, defaultText, action, colorIndex) {
-                let popup = document.createElement("div");
-                popup.classList.add("popup");
-                popup.innerHTML = message + "<br>";
-                let input = document.createElement("input");
-                input.style.backgroundColor = colorValues[colorIndex];
-                input.style.color = textColors[colorIndex];
-                input.style.padding = "10px";
-                input.type = "text";
-                input.value = defaultText;
-                window.setTimeout(function () { input.focus(); }, 0);
-                input.onfocus = function () { this.select(); };
-
-                input.onkeydown = function (event) {
-                    switch (event.key) {
-                        case "Enter":
-                            if (action) action(input.value);
-                        case "Escape":
-                            document.body.removeChild(popup);
-                            break;
-                    }
-                };
-
-                popup.appendChild(input);
-                document.body.appendChild(popup);
-
-                popup.appendChild(document.createElement("br"));
-
-                let buttonElement = document.createElement("button");
-                buttonElement.innerText = "OK";
-                buttonElement.onclick = function () {
-                    if (action) action(input.value);
-                    document.body.removeChild(popup);
-                };
-                popup.appendChild(buttonElement);
-
-                let cancelButton = document.createElement("button");
-                cancelButton.innerText = "Cancel";
-                cancelButton.onclick = function () {
-                    document.body.removeChild(popup);
-                };
-                popup.appendChild(cancelButton);
-                popup.style.display = "block";
-
-                closeDeezNutz(popup, function () {
-                    if (document.body.contains(popup)) {
-                        document.body.removeChild(popup);
-                    }
-                });
-            }
-
-            function popupButtonWindow(message, buttons) {
-                let popup = document.createElement("div");
-                popup.classList.add("popup");
-                popup.innerHTML = message + "<br>";
-                document.body.appendChild(popup);
-
-                for (let button of buttons) {
-                    let buttonElement = document.createElement("button");
-                    buttonElement.innerText = button.text;
-                    if (button.colorIndex !== undefined) {
-                        buttonElement.style.backgroundColor = colorValues[button.colorIndex];
-                        buttonElement.style.color = textColors[button.colorIndex];
-                    }
-                    buttonElement.onclick = function () {
-                        if (button.action) button.action();
-                        document.body.removeChild(popup);
-                    };
-                    popup.appendChild(buttonElement);
-                }
-                popup.style.display = "block";
-
-                closeDeezNutz(popup, function () {
-                    if (document.body.contains(popup)) {
-                        document.body.removeChild(popup);
-                    }
-                });
-            }
-
-            function renamePlayer() {
-                closeForm();
-                popupTextInputPrompt(
-                    "Enter new name for player:",
-                    scoreCard.scores[globalPlayerIndex].name,
-                    function (newName) {
-                        if (newName) {
-                            scoreCard.scores[globalPlayerIndex].name = newName;
-                            saveScores();
-                            rebuildTable();
-                        }
-                    }, scoreCard.scores[globalPlayerIndex].colorIndex);
-            }
-
-            function deletePlayer() {
-                console.log("--- deletePlayer");
-                scoreCard.scores.splice(globalPlayerIndex, 1);
-                saveScores();
-                rebuildTable();
-            }
-
-            function moveColumn(tableId, sourceIndex, targetIndex) {
-                const table = document.getElementById(tableId);
-                const rows = table.rows;
-
-                for (let i = 0; i < rows.length; i++) {
-                    const cells = rows[i].cells;
-                    const cellToMove = cells[sourceIndex];
-
-                    rows[i].removeChild(cellToMove);
-
-                    if (targetIndex < sourceIndex) {
-                        rows[i].insertBefore(cellToMove, cells[targetIndex]);
-                    } else {
-                        rows[i].insertBefore(cellToMove, cells[targetIndex + 1]);
-                    }
-                }
-            }
-
-            // Example usage:
-            // moveColumn('myTable', 1, 0); // Move column 2 (index 1) to position 1 (index 0)
-            function SortColumnsByTotal() {
-                scoreCard.scores.sort((a, b) => {
-                    if (a.total === b.total) {
-                        for (i = a.place.length - 1; i >= 0; i--) {
-                            if (a.place[i] !== b.place[i]) {
-                                return a.place[i] - b.place[i];
-                            }
-                        }
-                    }
-                    return b.total - a.total;
-                });
-                saveScores();
-                rebuildTable();
-            }
-
-            function getUnusedColorIndex() {
-                let usedColors = scoreCard.scores.map(score => score.colorIndex);
-                for (let i = 0; i < colorValues.length; i++) {
-                    if (!usedColors.includes(i)) {
-                        return i;
-                    }
-                }
-                return 0;
-            }
-
-            function addRace() {
-                for (let score of scoreCard.scores) {
-                    score.place.push(0);
-                }
-                scoreCard.races += 1;
-                saveScores();
-                rebuildTable();
-            }
-
-            function addRacer() {
-                let colorIndex = getUnusedColorIndex();
-                let place = [];
-                for (let i = 0; i < scoreCard.races; i++) {
-                    place.push(0);
-                }
-                let newRacer = {
-                    name: colorNames[colorIndex],
-                    colorIndex: colorIndex,
-                    place: place,
-                    total: 0
-                };
-                playerIndex = scoreCard.scores.length;
-                scoreCard.scores.push(newRacer);
-                addPlayerColumn(newRacer, playerIndex);
-                saveScores();
-                if (playerIndex >= 7) {
-                    event.target.disabled = true;
-                }
-            }
-
-            function chooseColor() {
-                let colorIndex = getUnusedColorIndex();
-                popupButtonWindow("Choose a color", [
-                    { text: "Yellow", action: () => { changeColor(0); }, colorIndex: 0 },
-                    { text: "Blue", action: () => { changeColor(1); }, colorIndex: 1 },
-                    { text: "Green", action: () => { changeColor(2); }, colorIndex: 2 },
-                    { text: "Red", action: () => { changeColor(3); }, colorIndex: 3 },
-                    { text: "Black", action: () => { changeColor(4); }, colorIndex: 4 },
-                    { text: "Gray", action: () => { changeColor(5); }, colorIndex: 5 },
-                    { text: "Orange", action: () => { changeColor(6); }, colorIndex: 6 },
-                    { text: "Purple", action: () => { changeColor(7); }, colorIndex: 7 }
-                ]);
-            }
-
-            function changeColor(colorIndex) {
-                scoreCard.scores[globalPlayerIndex].colorIndex = colorIndex;
-                saveScores();
-                rebuildTable();
-            }
-
-        </script>
+    <table id="scoreTable">
     </table>
 
     <button onclick="SortColumnsByTotal()">Sort Racers</button>
@@ -589,24 +597,6 @@
     <br>
     <img src="qr-code.png" alt="QR Code"
         style="display: block; margin: 20px 0; width: 200px; height: 200px; float: left;">
-
-    <!-- The form -->
-    <div class="form-popup" id="myForm">
-        <!-- <form action="/action_page.php" class="form-container"> -->
-        <form class="form-container">
-            <label for="name"><b>Player Name</b></label>
-            <label id="formNameField"
-                style="display: block; padding: 10px; margin: 5px 0 1px 0; border: 1px black;"></label>
-            <button type="button" onclick="renamePlayer()">Rename Player</button>
-            <button id="colorButton" type="button" onclick="{closeForm(); chooseColor()}">Change Color</button>
-            <button type="button"
-                onclick="{closeForm(); popupButtonWindow('Are you sure you want to delete player?', [{text: 'yes', action:deletePlayer}, {text:'no'}]);}">
-                Delete Player
-            </button>
-            <br>
-            <button type="button" onclick="closeForm()">Back</button>
-        </form>
-    </div>
 </body>
 
 

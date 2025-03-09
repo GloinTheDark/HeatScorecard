@@ -116,33 +116,56 @@
 
         let maps = [
             {
-                name:"Great Britain",
-                abbreviation:"GB",
-                laps:2
+                name: "Great Britain",
+                abbreviation: "GB",
+                laps: 2
+
             },
             {
-                name:"United States",
-                abbreviation:"USA",
-                laps:2
+                name: "United States",
+                abbreviation: "USA",
+                laps: 2
             },
             {
-                name:"Italia",
-                abbreviation:"ITL",
-                laps:3
+                name: "Italia",
+                abbreviation: "ITL",
+                laps: 3
             },
             {
-                name:"France",
-                abbreviation:"FRA",
-                laps:2
+                name: "France",
+                abbreviation: "FRA",
+                laps: 2
             }
         ];
-        let raceCards =[
+        let eventCards = [
             {
-                name:"",
+                name: "New Grandstand Inauguration",
                 raceNumber: 1,
-                season:"1961"
-            }
-        ];
+                season: "1961",
+                map: "Great Britain",
+                rules: "First three drivers to cross the Finish Line on the 1st lap immediately gain a sponsorship card.",
+                sponsorshipCards: 2,
+                pressBoxes: ["A", "C"],
+            },
+            {
+                name: "New Speed Record!",
+                raceNumber: 2,
+                season: "1961",
+                map: "USA",
+                rules: "Each time you reach a Speed of 15 or more, immediately gain a Sponsorship card.",
+                sponsorshipCards: 1,
+                pressBoxes: ["B"],
+            },
+            {
+                name: "Drivers' Strike",
+                raceNumber: 2,
+                season: "1961",
+                map: "USA",
+                rules: "Each time you reach a Speed of 15 or more, immediately gain a Sponsorship card.",
+                sponsorshipCards: 2,
+                pressBoxes: ["B"],
+            },
+            ];
         let seasons = [
             {
                 name: "1961"
@@ -442,11 +465,20 @@
                 }, scoreCard.scores[playerIndex].colorIndex);
         }
 
-        function deletePlayer(playerIndex) {
-            console.log("--- deletePlayer");
-            scoreCard.scores.splice(playerIndex, 1);
-            saveScores();
-            rebuildTable();
+        function deletePlayer(playerIndex, confirm) {
+            if (confirm) {
+                closeForm();
+                popupButtonWindow(`Are you sure you want to delete player "${scoreCard.scores[playerIndex].name}"?`, [
+                    { text: "Delete", action: function () { deletePlayer(playerIndex, false); } },
+                    { text: "Cancel" }
+                ]);
+            } else {
+                scoreCard.scores.splice(playerIndex, 1);
+                saveScores();
+                rebuildTable();
+
+            }
+
         }
 
         function SortColumnsByTotal() {
@@ -568,18 +600,10 @@
             };
             popup.appendChild(button2);
 
-            // <button type="button"
-            //     onclick="{closeForm(); popupButtonWindow('Are you sure you want to delete player?', [{text: 'yes', action:deletePlayer}, {text:'no'}]);}">
-            //     Delete Player
-            // </button>
             button3 = document.createElement("button");
             button3.innerText = "Delete Player";
             button3.onclick = function () {
-                closeForm();
-                popupButtonWindow("Are you sure you want to delete player?", [
-                    { text: "yes", action: function () { deletePlayer(playerIndex); } },
-                    { text: "no" }
-                ]);
+                deletePlayer(playerIndex, true);
             };
             popup.appendChild(button3);
 

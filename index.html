@@ -96,53 +96,38 @@
     </style>
     <script>
         console.log("--- Table Initializing");
-        let defaultScoreCard = {
-            races: 3,
-            scores: [
-                {
-                    name: "Red",
-                    colorIndex: 3,
-                    place: [0, 0, 0],
-                    total: 0
-                },
-                {
-                    name: "Blue",
-                    colorIndex: 1,
-                    place: [0, 0, 0],
-                    total: 0
-                }
-            ]
-        };
 
-        let maps = [
-            {
-                name: "Great Britain",
-                abbreviation: "GB",
-                laps: 2
-
-            },
-            {
-                name: "United States",
-                abbreviation: "USA",
-                laps: 2
-            },
-            {
-                name: "Italia",
-                abbreviation: "ITL",
-                laps: 3
-            },
-            {
-                name: "France",
-                abbreviation: "FRA",
-                laps: 2
+        class Track {
+            constructor(name, abbreviation, laps, length, turns) {
+                this.name = name;
+                this.abbreviation = abbreviation;
+                this.laps = laps;
+                this.length = length;
+                this.turns = turns;
             }
+        }
+
+        let tracks = [
+            new Track("Great Britain", "GB", 2, 63, 5),
+            new Track("United States", "USA", 2, 69, 4),
+            new Track("Italy", "ITA", 3, 54, 3),
+            new Track("France", "FRA", 2, 60, 5),
+            new Track("Mexico", "MEX", 3, 60, 6),
+            new Track("Japan", "JPN", 2, 60, 5),
+            new Track("Spain", "ESP", 1, 109, 11),
+            new Track("Netherlands", "NED", 3, 55, 5),
         ];
+
+        let trackMap = new Map();
+        tracks.forEach(track => {
+            trackMap.set(track.abbreviation, track);
+        });
         let eventCards = [
             {
                 name: "New Grandstand Inauguration",
                 raceNumber: 1,
                 season: "1961",
-                map: "Great Britain",
+                track: "GB",
                 rules: "First three drivers to cross the Finish Line on the 1st lap immediately gain a sponsorship card.",
                 sponsorshipCards: 2,
                 pressBoxes: ["A", "C"],
@@ -151,7 +136,7 @@
                 name: "New Speed Record!",
                 raceNumber: 2,
                 season: "1961",
-                map: "USA",
+                track: "USA",
                 rules: "Each time you reach a Speed of 15 or more, immediately gain a Sponsorship card.",
                 sponsorshipCards: 1,
                 pressBoxes: ["B"],
@@ -160,16 +145,18 @@
                 name: "Drivers' Strike",
                 raceNumber: 3,
                 season: "1961",
-                map: "Italy",
-                rules: "The winner of this race is awarded 2 extra Championship points.",
+                track: "ITA",
+                rules: "This race is one lap shorter than usual. The winner of this race is awarded 2 extra Championship points.",
                 sponsorshipCards: 1,
                 pressBoxes: ["C"],
+                bonusPlaces: 1,
+                pointBonus: 2,
             },
             {
                 name: "Engine Restrictions Lifted",
                 raceNumber: 1,
                 season: "1962",
-                map: "Italy",
+                track: "ITA",
                 rules: "All drivers start the race with an extra Heat card from the reserve in their Engine spot.",
                 sponsorshipCards: 2,
                 pressBoxes: ["E"],
@@ -178,25 +165,27 @@
                 name: "Record Crowds",
                 raceNumber: 2,
                 season: "1962",
-                map: "Great Britain",
+                track: "GB",
                 rules: "This race is one lap longer than usual and hand size is increased to 8 cards.",
                 sponsorshipCards: 1,
-                pressBoxes: ["C","E"],
+                pressBoxes: ["C", "E"],
             },
             {
                 name: "Corruption in Rules Committee",
                 raceNumber: 3,
                 season: "1962",
-                map: "France",
+                track: "FRA",
                 rules: "The top 3 finishers of this race are awarded an extra Championship point.",
                 sponsorshipCards: 1,
                 pressBoxes: ["C"],
+                bonusPlaces: 3,
+                pointBonus: 1
             },
             {
                 name: "New Title Sponsor",
                 raceNumber: 1,
                 season: "1963",
-                map: "USA",
+                track: "USA",
                 rules: "No Special Rules.",
                 sponsorshipCards: 3,
                 pressBoxes: ["A"],
@@ -205,16 +194,16 @@
                 name: "First Live Televised Race",
                 raceNumber: 2,
                 season: "1963",
-                map: "Great Britain",
+                track: "GB",
                 rules: "If you pass 3 cars in a single round, immediately gain a Sponsorship card.",
                 sponsorshipCards: 1,
-                pressBoxes: ["B","D"],
+                pressBoxes: ["B", "D"],
             },
             {
                 name: "New Safety Regulations",
                 raceNumber: 3,
                 season: "1963",
-                map: "France",
+                track: "FRA",
                 rules: "All drivers start the race with 2 less Heat cards and 1 less Stress card than usual. Hand size is reduced to 6 cards.",
                 sponsorshipCards: 1,
                 pressBoxes: ["D"],
@@ -223,7 +212,7 @@
                 name: "Title Sponsor Withdraws Future Unknown",
                 raceNumber: 4,
                 season: "1963",
-                map: "Italy",
+                track: "ITA",
                 rules: "All drivers start the race with an extra Stress card from the reserve in their Deck. If you spin out, you are eliminated from the race and score 0 Championship points.",
                 sponsorshipCards: 0,
                 pressBoxes: ["D"],
@@ -232,16 +221,16 @@
                 name: "Going Global",
                 raceNumber: 1,
                 season: "1964",
-                map: "Japan",
+                track: "JPN",
                 rules: "In Press Corners, you gain 2 Sponsorship cards instead of one.",
                 sponsorshipCards: 0,
-                pressBoxes: ["B","C"],
+                pressBoxes: ["B", "C"],
             },
             {
                 name: "Turbulent Winds",
                 raceNumber: 2,
                 season: "1964",
-                map: "France",
+                track: "FRA",
                 rules: "You may only Slipstream if you are in 3rd or 4th gear.",
                 sponsorshipCards: 1,
                 pressBoxes: ["B"],
@@ -250,7 +239,7 @@
                 name: "Chicanes for Increased Safety",
                 raceNumber: 3,
                 season: "1964",
-                map: "Mexico",
+                track: "MEX",
                 rules: "For this race, you may discard Heat cards during step 8.",
                 sponsorshipCards: 1,
                 pressBoxes: ["C"],
@@ -259,26 +248,199 @@
                 name: "Sudden Heavy Rain Delays Race",
                 raceNumber: 4,
                 season: "1964",
-                map: "Japan",
+                track: "JPN",
                 rules: "Nobody benefits from Adrenaline this race.",
                 sponsorshipCards: 1,
-                pressBoxes: [],
             },
-            ];
-        let seasons = [
             {
-                name: "1961"
-            }
+                name: "Hold on Tight",
+                raceNumber: 1,
+                season: "1965",
+                track: "GB",
+                rules: "A maximum of 1 card may be discarded per turn.",
+                sponsorshipCards: 2,
+                pressBoxes: ["D"],
+            },
+            {
+                name: "Smile and Wave",
+                raceNumber: 2,
+                season: "1965",
+                track: "USA",
+                rules: "In Press Corners, you only gaina Sponsorship card if driving slower than the speed limit.",
+                sponsorshipCards: 0,
+                pressBoxes: ["C"],
+            },
+            {
+                name: "Tunnel Vision",
+                raceNumber: 3,
+                season: "1965",
+                track: "ESP",
+                rules: "For this race, you may discard Stress cards during step 8.",
+                sponsorshipCards: 0,
+                pressBoxes: ["A", "C"],
+            },
+            {
+                name: "The Pressure Cooker",
+                raceNumber: 4,
+                season: "1965",
+                track: "NED",
+                rules: "This race is one lap longer than usual. Each time you complete a lap, remove a Heat card from the game (Step 8, remove from: Engine > Hand > Discard > Draw deck).",
+                sponsorshipCards: 1,
+                pressBoxes: ["B"],
+            },
         ];
+        let serieses = [
+            {
+                name: "1961",
+                comment: "The inaugural season of HEAT: Pedal to the Metal",
+                eventCards: eventCards.filter(card => card.season === "1961")
+            },
+            {
+                name: "1962",
+                comment: "The second season of HEAT: Pedal to the Metal",
+                eventCards: eventCards.filter(card => card.season === "1962")
+            },
+            {
+                name: "1963",
+                comment: "The third season of HEAT: Pedal to the Metal",
+                eventCards: eventCards.filter(card => card.season === "1963")
+            },
+            {
+                name: "GOAT",
+                comment: "Greatest of All Time: 1961-1963",
+                eventCards: eventCards.filter(card => ["1961", "1962", "1963"].includes(card.season))
+            },
+            {
+                name: "1964",
+                comment: "From HEAT: Heavy Rain",
+                eventCards: eventCards.filter(card => card.season === "1964")
+            },
+            {
+                name: "1965",
+                comment: "From HEAT: Tunnel Vision",
+                eventCards: eventCards.filter(card => card.season === "1965")
+            },
+        ];
+
+        let seriesMap = new Map();
+        for (let series of serieses) {
+            seriesMap.set(series.name, series);
+        }
+
+        console.log(serieses);
         placeNames = ["", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "DNF"];
         placePoints = [0, 9, 6, 4, 3, 2, 1, 0, 0, 0];
 
-        function placeString(place) {
+        function placeString(place, bonus) {
             if (place === 0) return "";
+            if (bonus) return `${placeNames[place]} (${placePoints[place]}+${bonus})`;
             return `${placeNames[place]} (${placePoints[place]})`;
         }
 
-        let scoreCard = JSON.parse(JSON.stringify(defaultScoreCard));
+        class Player {
+            place = [];
+            constructor(name, colorIndex) {
+                this.name = name;
+                this.colorIndex = colorIndex;
+            }
+        }
+
+        class ScoreCard {
+            players = [];
+            constructor(seriesName, players) {
+                this.seriesName = seriesName;
+                this.appendPlayer(players);
+            }
+            get series() {
+                return seriesMap.get(this.seriesName);
+            }
+
+            get numberOfPlayers() {
+                return this.players.length;
+            }
+
+            getNumberOfRaces() {
+                return this.series.eventCards.length;
+            }
+
+            appendPlayer(players) {
+                if (players instanceof Player) {
+                    this.players.push(players);
+                } else if (Array.isArray(players)) {
+                    for (let player of players) {
+                        this.players.push(player);
+                    }
+                }
+            }
+
+            deletePlayer(player) {
+                let index = this.players.indexOf(player);
+                if (index > -1) {
+                    this.players.splice(index, 1);
+                }
+            }
+
+            clearScores() {
+                for (let player of this.players) {
+                    player.place = new Array(this.getNumberOfRaces()).fill(0);
+                }
+            }
+
+            fix() {
+                for (let player of this.players) {
+                    while (player.place.length > this.getNumberOfRaces()) {
+                        player.place.pop();
+                    }
+                    while (player.place.length < this.getNumberOfRaces()) {
+                        player.place.push(0);
+                    }
+                }
+                this.updatePlayerTotals();
+            }
+
+            static clone(other) {
+                let newScoreCard = new ScoreCard(other.seriesName, other.players);
+                newScoreCard.players = structuredClone(other.players);
+                newScoreCard.fix();
+                return newScoreCard;
+            }
+
+            updatePlayerTotals() {
+                let sr = seriesMap.get(this.seriesName);
+                for (let player of this.players) {
+                    let total = 0;
+                    for (let i = 0; i < sr.eventCards.length; i++) {
+                        let place = player.place[i];
+                        // check to see if this event gives bonus points
+                        let eventCard = sr.eventCards[i];
+                        if (eventCard.bonusPlaces) {
+                            if (place > 0 && place <= eventCard.bonusPlaces) {
+                                total += eventCard.pointBonus;
+                            }
+                        }
+                        total += placePoints[place];
+                        player.total = total;
+                    }
+                }
+            }
+
+            getBonus(player, race) {
+                let place = player.place[race];
+                let eventCard = this.series.eventCards[race];
+                if (eventCard.bonusPlaces && place > 0 && place <= eventCard.bonusPlaces) {
+                    return eventCard.pointBonus;
+                }
+                return 0;
+            }
+        }
+
+        let defaultScoreCard = new ScoreCard("1961", [
+            new Player("Red", 3),
+            new Player("Blue", 1),
+        ]);
+
+
+        let scoreCard = ScoreCard.clone(defaultScoreCard);
 
         let colorNames = ["Yellow", "Blue", "Green", "Red", "Black", "Gray", "Orange", "Purple"];
         let colorValues = ["yellow", "blue", "green", "red", "black", "lightgray", "orange", "purple"];
@@ -290,8 +452,8 @@
         let gThingToClose = null;
         let gThingCloser = null;
 
-        function closeDeezNutz(thingToClose, thingCloser) {
-            console.log("closeDeezNutz");
+        function closePopupOnOutsideClick(thingToClose, thingCloser) {
+            console.log("closePopupOnOutsideClick");
             window.setTimeout(function () {
                 gThingToClose = thingToClose;
                 gThingCloser = thingCloser;
@@ -309,7 +471,7 @@
             }
         }
 
-        function addPlayerColumn(player, playerIndex) {
+        function addPlayerColumn(player) {
             console.log("--- addPlayerColumn");
             // console.log(player);
 
@@ -326,22 +488,22 @@
 
             // set the name
             cell.innerText = player.name;
-            cell.onclick = function () { openForm(player, playerIndex); };
+            cell.onclick = function () { openForm(player); };
             nameRow.appendChild(cell);
 
             // set the width
             cell.style.width = "100px";
 
             // add the score cells
-            for (let race = 0; race < scoreCard.races; race++) {
-                let row = document.getElementById(`race${race + 1}`);
+            for (let race = 0; race < scoreCard.getNumberOfRaces(); race++) {
+                let row = document.getElementById(`race${race}`);
                 if (!row) {
-                    console.log(`race${race + 1} not found`);
+                    console.log(`race${race} not found`);
                     continue;
                 }
                 let cell = document.createElement("td");
                 cell.onclick = function () { raceCellClick(player, race); };
-                cell.innerText = placeString(player.place[race]);
+                cell.innerText = placeString(player.place[race], scoreCard.getBonus(player, race));
                 row.appendChild(cell);
             }
 
@@ -360,17 +522,25 @@
 
             let nameRow = document.createElement("tr");
             nameRow.id = "nameRow";
-            cell1 = document.createElement("td");
-            cell1.innerText = "1961";
-            nameRow.appendChild(cell1);
+            let raceSeriesCell = document.createElement("td");
+            let series = seriesMap.get(scoreCard.seriesName);
+            raceSeriesCell.innerHTML = "<strong>Series<br>" + scoreCard.seriesName + "</strong>";
+            raceSeriesCell.onclick = function () {
+                showSeriesInfo();
+            };
+            nameRow.appendChild(raceSeriesCell);
             table.appendChild(nameRow);
 
-            for (let race = 1; race <= scoreCard.races; race++) {
+            for (let race = 0; race < scoreCard.getNumberOfRaces(); race++) {
                 let row = document.createElement("tr");
                 row.id = `race${race}`;
                 let raceRowHeaderCell = document.createElement("td");
                 raceRowHeaderCell.style.width = "50px";
-                raceRowHeaderCell.innerText = `Race ${race}`;
+                let eventCard = scoreCard.series.eventCards[race];
+                raceRowHeaderCell.innerHTML = `Race ${race + 1}<br>${eventCard.track}`;
+                raceRowHeaderCell.onclick = function () {
+                    showRaceInfo(race);
+                };
                 row.appendChild(raceRowHeaderCell);
                 table.appendChild(row);
             }
@@ -380,13 +550,13 @@
             totalRow.id = "totalRow";
             let totalCell = document.createElement("td")
             totalCell.innerText = "Total";
-            totalCell.onclick = function () { SortColumnsByTotal(); };
+            totalCell.onclick = function () { sortColumnsByTotal(); };
             totalRow.appendChild(totalCell);
             table.appendChild(totalRow);
 
-            for (let i = 0; i < scoreCard.scores.length; i++) {
-                addPlayerColumn(scoreCard.scores[i], i);
-            }
+            scoreCard.players.forEach(player => {
+                addPlayerColumn(player);
+            });
         };
 
         function saveScores() {
@@ -397,12 +567,14 @@
 
         function loadScores() {
             console.log("--- loadScores");
-            scores = localStorage.getItem("scoreCard");
+            let scores = localStorage.getItem("scoreCard");
             console.log(scores);
             if (scores) {
-                scoreCard = JSON.parse(scores);
+                let saveScoreCard = JSON.parse(scores);
+                scoreCard = new ScoreCard(saveScoreCard.seriesName, saveScoreCard.players);
+                scoreCard.fix();
             } else {
-                scoreCard = JSON.parse(JSON.stringify(defaultScoreCard));
+                scoreCard = ScoreCard.clone(defaultScoreCard);
             }
             rebuildTable();
         }
@@ -424,7 +596,7 @@
             if (place === 0) {
                 for (let i = 1; i <= 8; i++) {
                     let taken = false;
-                    for (let score of scoreCard.scores) {
+                    for (let score of scoreCard.players) {
                         if (score.place[race] === i) {
                             taken = true;
                             break;
@@ -439,12 +611,7 @@
                 place = 0;
             }
             player.place[race] = place;
-
-            let total = 0;
-            for (let place of player.place) {
-                total += placePoints[place];
-            }
-            player.total = total;
+            scoreCard.updatePlayerTotals();
             saveScores();
             rebuildTable();
         }
@@ -452,12 +619,7 @@
 
         function clearScores() {
             if (confirm("Are you sure you want to clear scores?")) {
-                for (score of scoreCard.scores) {
-                    for (i = 0; i < score.place.length; i++) {
-                        score.place[i] = 0;
-                    }
-                    score.total = 0;
-                }
+                scoreCard.clearScores();
                 saveScores();
                 rebuildTable();
             }
@@ -465,10 +627,86 @@
 
         function resetScoreCard() {
             if (confirm("Are you sure you want to clear the player names?")) {
-                scoreCard = JSON.parse(JSON.stringify(defaultScoreCard));
+                scoreCard = ScoreCard.clone(defaultScoreCard);
                 saveScores();
                 rebuildTable();
             }
+        }
+
+        function showRaceInfo(race) {
+            let eventCard = scoreCard.series.eventCards[race];
+
+            let popup = document.createElement("div");
+            popup.width = "300px";
+            popup.innerHTML = `<h3>Race Info:</h3>`;
+            popup.innerHTML += `<strong>${eventCard.name}</strong><br>`;
+            popup.innerHTML += `${eventCard.rules}<br>`;
+            let track = trackMap.get(eventCard.track);
+            popup.innerHTML += `${eventCard.season} · Race ${eventCard.raceNumber}<br>`;
+            popup.innerHTML += `Track: ${track.name} (${track.abbreviation}) <br>`;
+            popup.innerHTML += `Laps: ${track.laps || 1} · Length: ${track.length || 0} · Turns: ${track.turns || 0} <br>`;
+            popup.innerHTML += `Sponsorship Cards: ${eventCard.sponsorshipCards || 0} <br>`;
+            popup.innerHTML += `Press Boxes: ${(eventCard.pressBoxes && eventCard.pressBoxes.length > 0) ? eventCard.pressBoxes.join(", ") : "None"} <br>`;
+
+
+            popup.classList.add("popup");
+
+            document.body.appendChild(popup);
+            closePopupOnOutsideClick(popup, function () {
+                if (document.body.contains(popup)) {
+                    document.body.removeChild(popup);
+                }
+            });
+        }
+
+        function showSeriesInfo() {
+            let popupSeriesInfo = document.createElement("div");
+            popupSeriesInfo.classList.add("popup");
+            popupSeriesInfo.innerHTML = `<h3>Series Info:</h3>`;
+
+            let series = scoreCard.series;
+            if (!series) {
+                series = serieses[0];
+            }
+            popupSeriesInfo.innerHTML += `<strong>${series.name} - ${series.comment}</strong><br>`;
+            popupSeriesInfo.innerHTML += `Events: ${series.eventCards.length}<br>`;
+            for (let eventCard of series.eventCards) {
+                popupSeriesInfo.innerHTML += `<br><strong>${eventCard.season}, Race ${eventCard.raceNumber}<br>${eventCard.name}</strong><br>`;
+            }
+
+            let changeSeriesButton = document.createElement("button");
+            changeSeriesButton.innerText = "Change Series";
+            changeSeriesButton.onclick = function () {
+                document.body.removeChild(popupSeriesInfo);
+                let buttons = serieses.map((series, index) => ({
+                    text: series.name,
+                    info: series.comment,
+                    action: function () {
+                        scoreCard.seriesName = series.name;
+                        scoreCard.races = series.eventCards.length;
+                        scoreCard.clearScores();
+                        saveScores();
+                        rebuildTable();
+                    }
+                }));
+                popupButtonWindow("Choose a series", buttons);
+            };
+            popupSeriesInfo.appendChild(changeSeriesButton);
+
+            // addadd a close button
+            let closeButton = document.createElement("button");
+            closeButton.innerText = "Close";
+            closeButton.onclick = function () {
+                document.body.removeChild(popupSeriesInfo);
+            };
+            popupSeriesInfo.appendChild(closeButton);
+
+            document.body.appendChild(popupSeriesInfo);
+            closePopupOnOutsideClick(popupSeriesInfo, function () {
+                if (document.body.contains(popupSeriesInfo)) {
+                    document.body.removeChild(popupSeriesInfo);
+                }
+            });
         }
 
         function popupTextInputPrompt(message, defaultText, action, colorIndex) {
@@ -515,7 +753,7 @@
             popup.appendChild(cancelButton);
             popup.style.display = "block";
 
-            closeDeezNutz(popup, function () {
+            closePopupOnOutsideClick(popup, function () {
                 if (document.body.contains(popup)) {
                     document.body.removeChild(popup);
                 }
@@ -540,39 +778,44 @@
                     document.body.removeChild(popup);
                 };
                 popup.appendChild(buttonElement);
+                if (button.info) {
+                    let infoElement = document.createElement("div");
+                    infoElement.innerHTML = button.info;
+                    popup.appendChild(infoElement);
+                }
             }
             popup.style.display = "block";
 
-            closeDeezNutz(popup, function () {
+            closePopupOnOutsideClick(popup, function () {
                 if (document.body.contains(popup)) {
                     document.body.removeChild(popup);
                 }
             });
         }
 
-        function renamePlayer(playerIndex) {
+        function renamePlayer(player) {
             closeForm();
             popupTextInputPrompt(
                 "Enter new name for player:",
-                scoreCard.scores[playerIndex].name,
+                player.name,
                 function (newName) {
                     if (newName) {
-                        scoreCard.scores[playerIndex].name = newName;
+                        player.name = newName;
                         saveScores();
                         rebuildTable();
                     }
-                }, scoreCard.scores[playerIndex].colorIndex);
+                }, player.colorIndex);
         }
 
-        function deletePlayer(playerIndex, confirm) {
+        function deletePlayer(player, confirm) {
             if (confirm) {
                 closeForm();
-                popupButtonWindow(`Are you sure you want to delete player "${scoreCard.scores[playerIndex].name}"?`, [
-                    { text: "Delete", action: function () { deletePlayer(playerIndex, false); } },
+                popupButtonWindow(`Are you sure you want to delete player "${player.name}"?`, [
+                    { text: "Delete", action: function () { deletePlayer(player, false); } },
                     { text: "Cancel" }
                 ]);
             } else {
-                scoreCard.scores.splice(playerIndex, 1);
+                scoreCard.deletePlayer(player);
                 saveScores();
                 rebuildTable();
 
@@ -580,14 +823,19 @@
 
         }
 
-        function SortColumnsByTotal() {
-            scoreCard.scores.sort((a, b) => {
+        function sortColumnsByTotal() {
+            scoreCard.players.forEach(player => {
+                player.seed = Math.random();
+            });
+
+            scoreCard.players.sort((a, b) => {
                 if (a.total === b.total) {
                     for (i = a.place.length - 1; i >= 0; i--) {
                         if (a.place[i] !== b.place[i]) {
                             return a.place[i] - b.place[i];
                         }
                     }
+                    return a.seed - b.seed;
                 }
                 return b.total - a.total;
             });
@@ -596,7 +844,7 @@
         }
 
         function getUnusedColorIndex() {
-            let usedColors = scoreCard.scores.map(score => score.colorIndex);
+            let usedColors = scoreCard.players.map(score => score.colorIndex);
             for (let i = 0; i < colorValues.length; i++) {
                 if (!usedColors.includes(i)) {
                     return i;
@@ -606,7 +854,7 @@
         }
 
         function addRace() {
-            for (let score of scoreCard.scores) {
+            for (let score of scoreCard.players) {
                 score.place.push(0);
             }
             scoreCard.races += 1;
@@ -616,47 +864,38 @@
 
         function addRacer() {
             let colorIndex = getUnusedColorIndex();
-            let place = [];
-            for (let i = 0; i < scoreCard.races; i++) {
-                place.push(0);
-            }
-            let newRacer = {
-                name: colorNames[colorIndex],
-                colorIndex: colorIndex,
-                place: place,
-                total: 0
-            };
-            playerIndex = scoreCard.scores.length;
-            scoreCard.scores.push(newRacer);
-            addPlayerColumn(newRacer, playerIndex);
-            saveScores();
-            if (playerIndex >= 7) {
+            player = new Player(colorNames[colorIndex], colorIndex);
+            scoreCard.appendPlayer(player);
+            if (scoreCard.numberOfPlayers >= 8) {
                 event.target.disabled = true;
             }
-        }
-
-        function chooseColor(playerIndex) {
-            let colorIndex = getUnusedColorIndex();
-            popupButtonWindow("Choose a color", [
-                { text: "Yellow", action: () => { changeColor(0, playerIndex); }, colorIndex: 0 },
-                { text: "Blue", action: () => { changeColor(1, playerIndex); }, colorIndex: 1 },
-                { text: "Green", action: () => { changeColor(2, playerIndex); }, colorIndex: 2 },
-                { text: "Red", action: () => { changeColor(3, playerIndex); }, colorIndex: 3 },
-                { text: "Black", action: () => { changeColor(4, playerIndex); }, colorIndex: 4 },
-                { text: "Gray", action: () => { changeColor(5, playerIndex); }, colorIndex: 5 },
-                { text: "Orange", action: () => { changeColor(6, playerIndex); }, colorIndex: 6 },
-                { text: "Purple", action: () => { changeColor(7, playerIndex); }, colorIndex: 7 }
-
-            ]);
-        }
-
-        function changeColor(colorIndex, playerIndex) {
-            scoreCard.scores[playerIndex].colorIndex = colorIndex;
+            scoreCard.fix();
             saveScores();
             rebuildTable();
         }
 
-        function openForm(player, playerIndex) {
+        function chooseColor(player) {
+            let colorIndex = getUnusedColorIndex();
+            popupButtonWindow("Choose a color", [
+                { text: "Yellow", action: () => { changeColor(0, player); }, colorIndex: 0 },
+                { text: "Blue", action: () => { changeColor(1, player); }, colorIndex: 1 },
+                { text: "Green", action: () => { changeColor(2, player); }, colorIndex: 2 },
+                { text: "Red", action: () => { changeColor(3, player); }, colorIndex: 3 },
+                { text: "Black", action: () => { changeColor(4, player); }, colorIndex: 4 },
+                { text: "Gray", action: () => { changeColor(5, player); }, colorIndex: 5 },
+                { text: "Orange", action: () => { changeColor(6, player); }, colorIndex: 6 },
+                { text: "Purple", action: () => { changeColor(7, player); }, colorIndex: 7 }
+
+            ]);
+        }
+
+        function changeColor(colorIndex, player) {
+            playeer.colorIndex = colorIndex;
+            saveScores();
+            rebuildTable();
+        }
+
+        function openForm(player) {
             console.log("--- openForm");
 
             let popup = document.createElement("div");
@@ -671,7 +910,7 @@
             let nameField = document.createElement("label");
             nameField.id = "formNameField";
             nameField.onclick = function () {
-                renamePlayer(playerIndex);
+                renamePlayer(player);
             };
             nameField.classList.add("player-name");
             nameField.style.backgroundColor = colorValues[player.colorIndex];
@@ -686,7 +925,7 @@
             button1 = document.createElement("button");
             button1.innerText = "Rename Player";
             button1.onclick = function () {
-                renamePlayer(playerIndex);
+                renamePlayer(player);
             };
             popup.appendChild(button1);
 
@@ -695,14 +934,14 @@
             button2.innerText = "Change Color";
             button2.onclick = function () {
                 closeForm();
-                chooseColor(playerIndex);
+                chooseColor(player);
             };
             popup.appendChild(button2);
 
             button3 = document.createElement("button");
             button3.innerText = "Delete Player";
             button3.onclick = function () {
-                deletePlayer(playerIndex, true);
+                deletePlayer(player, true);
             };
             popup.appendChild(button3);
 
@@ -719,7 +958,7 @@
 
             document.body.appendChild(popup);
 
-            closeDeezNutz(popup, function () {
+            closePopupOnOutsideClick(popup, function () {
                 if (document.body.contains(popup)) {
                     document.body.removeChild(popup);
                 }
@@ -741,7 +980,7 @@
     <table id="scoreTable">
     </table>
 
-    <button onclick="SortColumnsByTotal()">Sort Racers</button>
+    <button onclick="sortColumnsByTotal()">Sort Racers</button>
     <button id="addRacer" onclick="addRacer()">Add Racer</button>
     <button id="addRace" onclick="addRace()">Add Race</button>
     <br>

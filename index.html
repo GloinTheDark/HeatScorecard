@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Heat Score Card</title>
+    <title>Heat Scorecard</title>
     <style>
         table {
             /* width: 100%; */
@@ -350,7 +350,7 @@
             }
         }
 
-        class ScoreCard {
+        class Scorecard {
             players = [];
             constructor(seriesName, players) {
                 this.seriesName = seriesName;
@@ -405,10 +405,10 @@
             }
 
             static clone(other) {
-                let newScoreCard = new ScoreCard(other.seriesName, other.players);
-                newScoreCard.players = structuredClone(other.players);
-                newScoreCard.fix();
-                return newScoreCard;
+                let newScorecard = new Scorecard(other.seriesName, other.players);
+                newScorecard.players = structuredClone(other.players);
+                newScorecard.fix();
+                return newScorecard;
             }
 
             updatePlayerTotals() {
@@ -441,26 +441,26 @@
 
             getCurrentEventCard() {
                 let race = 0;
-                let l = scoreCard.series.eventCards.length;
+                let l = scorecard.series.eventCards.length;
                 for (let player of this.players) {
                     for (let i = 0; i < l; i++) {
                         if (player.place[i] == 0) {
-                            return scoreCard.series.eventCards[i];
+                            return scorecard.series.eventCards[i];
                         }
                     }
                 }
 
-                return scoreCard.series.eventCards[l - 1];
+                return scorecard.series.eventCards[l - 1];
             }
         }
 
-        let defaultScoreCard = new ScoreCard("1961", [
+        let defaultScoreCard = new Scorecard("1961", [
             new Player("Red", 3),
             new Player("Blue", 1),
         ]);
 
 
-        let scoreCard = ScoreCard.clone(defaultScoreCard);
+        let scorecard = Scorecard.clone(defaultScoreCard);
 
         let colorNames = ["Yellow", "Blue", "Green", "Red", "Black", "Gray", "Orange", "Purple"];
         let colorValues = ["yellow", "blue", "green", "red", "black", "lightgray", "orange", "purple"];
@@ -515,7 +515,7 @@
             cell.style.width = "100px";
 
             // add the score cells
-            for (let race = 0; race < scoreCard.getNumberOfRaces(); race++) {
+            for (let race = 0; race < scorecard.getNumberOfRaces(); race++) {
                 let row = document.getElementById(`race${race}`);
                 if (!row) {
                     console.log(`race${race} not found`);
@@ -523,7 +523,7 @@
                 }
                 let cell = document.createElement("td");
                 cell.onclick = function () { raceCellClick(player, race); };
-                cell.innerText = placeString(player.place[race], scoreCard.getBonus(player, race));
+                cell.innerText = placeString(player.place[race], scorecard.getBonus(player, race));
                 row.appendChild(cell);
             }
 
@@ -544,20 +544,20 @@
             nameRow.id = "nameRow";
             let raceSeriesCell = document.createElement("td");
             raceSeriesCell.style.width = "70px";
-            let series = seriesMap.get(scoreCard.seriesName);
-            raceSeriesCell.innerHTML = "<strong>Series<br>" + scoreCard.seriesName + "</strong>";
+            let series = seriesMap.get(scorecard.seriesName);
+            raceSeriesCell.innerHTML = "<strong>Series<br>" + scorecard.seriesName + "</strong>";
             raceSeriesCell.onclick = function () {
                 showSeriesInfo();
             };
             nameRow.appendChild(raceSeriesCell);
             table.appendChild(nameRow);
 
-            for (let race = 0; race < scoreCard.getNumberOfRaces(); race++) {
+            for (let race = 0; race < scorecard.getNumberOfRaces(); race++) {
                 let row = document.createElement("tr");
                 row.id = `race${race}`;
                 let raceRowHeaderCell = document.createElement("td");
                 raceRowHeaderCell.style.width = "50px";
-                let eventCard = scoreCard.series.eventCards[race];
+                let eventCard = scorecard.series.eventCards[race];
                 raceRowHeaderCell.innerHTML = `Race ${race + 1}<br>${eventCard.track}`;
                 raceRowHeaderCell.onclick = function () {
                     showRaceInfo(race);
@@ -575,27 +575,42 @@
             totalRow.appendChild(totalCell);
             table.appendChild(totalRow);
 
-            scoreCard.players.forEach(player => {
+            scorecard.players.forEach(player => {
                 addPlayerColumn(player);
             });
         };
 
         function saveScores() {
             console.log("--- saveScores");
-            saveString = JSON.stringify(scoreCard);
-            localStorage.setItem("scoreCard", saveString);
+            saveString = JSON.stringify(scorecard, (key, value) => {
+                switch (key) {
+                    case "seed":
+                    case "total":
+                        return undefined;
+                }
+                return value;
+            });
+            console.log(saveString);
+            localStorage.setItem("scorecard", saveString);
         }
 
         function loadScores() {
+            // todo remove later
+            {
+                let scores = localStorage.getItem("scoreCard");
+                if(scores) {
+                    localStorage.removeItem("scoreCard");
+                    localStorage.setItem("scorecard", scores);
+                }                
+            }            
             console.log("--- loadScores");
-            let scores = localStorage.getItem("scoreCard");
-            console.log(scores);
+            let scores = localStorage.getItem("scorecard");
             if (scores) {
                 let saveScoreCard = JSON.parse(scores);
-                scoreCard = new ScoreCard(saveScoreCard.seriesName, saveScoreCard.players);
-                scoreCard.fix();
+                scorecard = new Scorecard(saveScoreCard.seriesName, saveScoreCard.players);
+                scorecard.fix();
             } else {
-                scoreCard = ScoreCard.clone(defaultScoreCard);
+                scorecard = Scorecard.clone(defaultScoreCard);
             }
             rebuildTable();
         }
@@ -606,8 +621,6 @@
             while (table.firstChild) {
                 table.removeChild(table.firstChild);
             }
-            // console.log(scoreCard);
-            // rebuild the table
             buildTable();
         }
 
@@ -617,7 +630,7 @@
             if (place === 0) {
                 for (let i = 1; i <= 8; i++) {
                     let taken = false;
-                    for (let score of scoreCard.players) {
+                    for (let score of scorecard.players) {
                         if (score.place[race] === i) {
                             taken = true;
                             break;
@@ -632,7 +645,7 @@
                 place = 0;
             }
             player.place[race] = place;
-            scoreCard.updatePlayerTotals();
+            scorecard.updatePlayerTotals();
             saveScores();
             rebuildTable();
         }
@@ -640,7 +653,7 @@
 
         function clearScores() {
             if (confirm("Are you sure you want to clear scores?")) {
-                scoreCard.clearScores();
+                scorecard.clearScores();
                 saveScores();
                 rebuildTable();
             }
@@ -648,14 +661,14 @@
 
         function resetScoreCard() {
             if (confirm("Are you sure you want to clear the player names?")) {
-                scoreCard = ScoreCard.clone(defaultScoreCard);
+                scorecard = Scorecard.clone(defaultScoreCard);
                 saveScores();
                 rebuildTable();
             }
         }
 
         function showRaceInfo(race) {
-            let eventCard = scoreCard.series.eventCards[race];
+            let eventCard = scorecard.series.eventCards[race];
 
             let popup = document.createElement("div");
             popup.width = "300px";
@@ -668,6 +681,13 @@
             popup.innerHTML += `Laps: ${track.laps || 1} · Length: ${track.length || 0} · Turns: ${track.turns || 0} <br>`;
             popup.innerHTML += `Sponsorship Cards: ${eventCard.sponsorshipCards || 0} <br>`;
             popup.innerHTML += `Press Boxes: ${(eventCard.pressBoxes && eventCard.pressBoxes.length > 0) ? eventCard.pressBoxes.join(", ") : "None"} <br>`;
+
+            let closeButton = document.createElement("button");
+            closeButton.innerText = "Close";
+            closeButton.onclick = function () {
+                document.body.removeChild(popup);
+            };
+            popup.appendChild(closeButton);
 
 
             popup.classList.add("popup");
@@ -685,7 +705,7 @@
             popupSeriesInfo.classList.add("popup");
             popupSeriesInfo.innerHTML = `<h3>Series Info:</h3>`;
 
-            let series = scoreCard.series;
+            let series = scorecard.series;
             if (!series) {
                 series = serieses[0];
             }
@@ -703,9 +723,9 @@
                     text: series.name,
                     info: series.comment,
                     action: function () {
-                        scoreCard.seriesName = series.name;
-                        scoreCard.races = series.eventCards.length;
-                        scoreCard.clearScores();
+                        scorecard.seriesName = series.name;
+                        scorecard.races = series.eventCards.length;
+                        scorecard.clearScores();
                         saveScores();
                         rebuildTable();
                     }
@@ -836,7 +856,7 @@
                     { text: "Cancel" }
                 ]);
             } else {
-                scoreCard.deletePlayer(player);
+                scorecard.deletePlayer(player);
                 saveScores();
                 rebuildTable();
 
@@ -845,11 +865,11 @@
         }
 
         function sortColumnsByTotal() {
-            scoreCard.players.forEach(player => {
+            scorecard.players.forEach(player => {
                 player.seed = Math.random();
             });
 
-            scoreCard.players.sort((a, b) => {
+            scorecard.players.sort((a, b) => {
                 if (a.total === b.total) {
                     for (i = a.place.length - 1; i >= 0; i--) {
                         if (a.place[i] !== b.place[i]) {
@@ -865,7 +885,7 @@
         }
 
         function getUnusedColorIndex() {
-            let usedColors = scoreCard.players.map(score => score.colorIndex);
+            let usedColors = scorecard.players.map(score => score.colorIndex);
             for (let i = 0; i < colorValues.length; i++) {
                 if (!usedColors.includes(i)) {
                     return i;
@@ -875,10 +895,10 @@
         }
 
         function addRace() {
-            for (let score of scoreCard.players) {
+            for (let score of scorecard.players) {
                 score.place.push(0);
             }
-            scoreCard.races += 1;
+            scorecard.races += 1;
             saveScores();
             rebuildTable();
         }
@@ -886,11 +906,11 @@
         function addRacer() {
             let colorIndex = getUnusedColorIndex();
             player = new Player(colorNames[colorIndex], colorIndex);
-            scoreCard.appendPlayer(player);
-            if (scoreCard.numberOfPlayers >= 8) {
+            scorecard.appendPlayer(player);
+            if (scorecard.numberOfPlayers >= 8) {
                 event.target.disabled = true;
             }
-            scoreCard.fix();
+            scorecard.fix();
             saveScores();
             rebuildTable();
         }
@@ -1040,7 +1060,7 @@
 
             let weatherCard = weatherCards[Math.floor(Math.random() * weatherCards.length)];
             let weatherDiv = document.createElement("div");
-            let eventCard = scoreCard.getCurrentEventCard();
+            let eventCard = scorecard.getCurrentEventCard();
             let track = trackMap.get(eventCard.track);
 
             weatherDiv.id = "weatherDiv";
@@ -1098,16 +1118,16 @@
 
 
 <body onload="loadScores()">
-    <h2>HEAT:<br>PEDAL TO THE METAL<br>Online Score Card</h2>
+    <h2>HEAT:<br>PEDAL TO THE METAL<br>Online Scorecard</h2>
     <table id="scoreTable">
     </table>
 
     <button onclick="sortColumnsByTotal()">Sort Racers</button>
     <button id="addRacer" onclick="addRacer()">Add Racer</button>
-    <button id="addRace" onclick="addRace()">Add Race</button>
+    <!-- <button id="addRace" onclick="addRace()">Add Race</button> -->
     <br>
     <button onclick="clearScores()">Clear Scores</button>
-    <button onclick="resetScoreCard()">Reset Score Card</button>
+    <button onclick="resetScoreCard()">Reset Scorecard</button>
     <br>
     <button onclick="rollWeather()">Generate Weather</button>
     <br>

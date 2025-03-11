@@ -106,6 +106,10 @@
                 this.turns = turns;
                 this.chicanes = chicanes;
             }
+
+            get imageName() {
+                return `${this.abbreviation}.png`;
+            }
         }
 
         let tracks = [
@@ -1023,6 +1027,10 @@
             new RoadConditionTile("Weather Effects", "Weather.png", false),
         ];
 
+        function circleNumberString(index) {
+            // 0 -> , etc...
+            return String.fromCharCode(0x2460 + index);
+        }
 
         function rollWeather() {
             let old = document.getElementById("weatherDiv");
@@ -1041,6 +1049,7 @@
             weatherDiv.innerHTML += `<strong>${weatherCard.name}</strong><br>`;
             weatherDiv.innerHTML += `${weatherCard.description}<br>`;
             weatherDiv.innerHTML += `<img src="${weatherCard.image}" alt="${weatherCard.name}" style="width: 400px; height: 300px;">`;
+            weatherDiv.innerHTML += `<img src="${track.imageName}" alt="${track.name}" style="width: 400px; height: 300px;">`;
 
             let tilesToAdd = track.turns - track.chicanes.length;
 
@@ -1050,24 +1059,28 @@
                 rcts.push(rct);
             }
 
-            let corner = 1;
+            let corner = 0;
             for (let tileIndex = 0; tileIndex < tilesToAdd; tileIndex++) {
                 let j = Math.floor(Math.random() * rcts.length);
                 let rct = rcts[j];
                 let tileDiv = document.createElement("div");
                 tileDiv.innerHTML = `<br><strong>${rct.name}: </strong>`;
+                let c0 = corner;
+                let c1 = (corner + 1) % track.turns;
+                let c2 = (corner + 2) % track.turns;
+
                 if (track.chicanes.includes(corner)) {
                     if (rct.cornerTile) {
-                        tileDiv.innerHTML += `between corners ${corner} and ${corner + 1} <br>`;
+                        tileDiv.innerHTML += `on chicane between corners ${circleNumberString(c0)} and ${circleNumberString(c1)} <br>`;
                     } else {
-                        tileDiv.innerHTML += `between corners ${corner + 1} and ${corner + 2} <br>`;
+                        tileDiv.innerHTML += `between corners ${circleNumberString(c1)} and ${circleNumberString(c2)} <br>`;
                     }
                     corner += 2;
                 } else {
                     if (rct.cornerTile) {
-                        tileDiv.innerHTML += `on corner ${corner} <br>`;
+                        tileDiv.innerHTML += `on corner ${circleNumberString(c0)} <br>`;
                     } else {
-                        tileDiv.innerHTML += `between corners ${corner} and ${corner + 1} <br>`;
+                        tileDiv.innerHTML += `between corners ${circleNumberString(c0)} and ${circleNumberString(c1)} <br>`;
                     }
                     corner += 1;
                 }
@@ -1077,7 +1090,8 @@
             }
 
 
-            document.body.appendChild(weatherDiv);
+            // document.body.appendChild(weatherDiv);
+            document.body.insertBefore(weatherDiv, document.getElementById("qrcode"));
         }
     </script>
 </head>
@@ -1098,7 +1112,7 @@
     <button onclick="rollWeather()">Generate Weather</button>
     <br>
     <br>
-    <div>
+    <div id="qrcode">
         Scan this code to share the link to this page.
         <br>
         <img src="qr-code.png" alt="QR Code"

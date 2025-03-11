@@ -98,24 +98,25 @@
         console.log("--- Table Initializing");
 
         class Track {
-            constructor(name, abbreviation, laps, length, turns) {
+            constructor(name, abbreviation, laps, length, turns, chicanes) {
                 this.name = name;
                 this.abbreviation = abbreviation;
                 this.laps = laps;
                 this.length = length;
                 this.turns = turns;
+                this.chicanes = chicanes;
             }
         }
 
         let tracks = [
-            new Track("Great Britain", "GB", 2, 63, 5),
-            new Track("United States", "USA", 2, 69, 4),
-            new Track("Italy", "ITA", 3, 54, 3),
-            new Track("France", "FRA", 2, 60, 5),
-            new Track("Mexico", "MEX", 3, 60, 6),
-            new Track("Japan", "JPN", 2, 60, 5),
-            new Track("Spain", "ESP", 1, 109, 11),
-            new Track("Netherlands", "NED", 3, 55, 5),
+            new Track("Great Britain", "GB", 2, 63, 5, []),
+            new Track("United States", "USA", 2, 69, 4, []),
+            new Track("Italy", "ITA", 3, 54, 3, []),
+            new Track("France", "FRA", 2, 60, 5, []),
+            new Track("Mexico", "MEX", 3, 60, 6, [1, 4]),
+            new Track("Japan", "JPN", 2, 60, 5, [1]),
+            new Track("Spain", "ESP", 1, 109, 11, [3, 9]),
+            new Track("Netherlands", "NED", 3, 55, 5, [1]),
         ];
 
         let trackMap = new Map();
@@ -384,6 +385,7 @@
                 for (let player of this.players) {
                     player.place = new Array(this.getNumberOfRaces()).fill(0);
                 }
+                this.updatePlayerTotals();
             }
 
             fix() {
@@ -431,6 +433,20 @@
                     return eventCard.pointBonus;
                 }
                 return 0;
+            }
+
+            getCurrentEventCard() {
+                let race = 0;
+                let l = scoreCard.series.eventCards.length;
+                for (let player of this.players) {
+                    for (let i = 0; i < l; i++) {
+                        if (player.place[i] == 0) {
+                            return scoreCard.series.eventCards[i];
+                        }
+                    }
+                }
+
+                return scoreCard.series.eventCards[l - 1];
             }
         }
 
@@ -523,6 +539,7 @@
             let nameRow = document.createElement("tr");
             nameRow.id = "nameRow";
             let raceSeriesCell = document.createElement("td");
+            raceSeriesCell.style.width = "70px";
             let series = seriesMap.get(scoreCard.seriesName);
             raceSeriesCell.innerHTML = "<strong>Series<br>" + scoreCard.seriesName + "</strong>";
             raceSeriesCell.onclick = function () {
@@ -970,12 +987,103 @@
                 document.body.removeChild(popup);
             }
         }
+
+        class WeatherCard {
+            constructor(name, description, effect, image) {
+                this.name = name;
+                this.description = description;
+                this.effect = effect;
+                this.image = image;
+            }
+        }
+
+        weatherCards = [
+            new WeatherCard("Sunny", "", "", "Sunny.png"),
+            new WeatherCard("Rainy", "", "", "Rain.png"),
+            new WeatherCard("Snowy", "", "", "Snow.png"),
+            new WeatherCard("Cloudy", "", "", "Cloudy.png"),
+            new WeatherCard("Heavy Rain", "", "", "Heavy Rain.png"),
+            new WeatherCard("Foggy", "", "", "Fog.png"),
+        ];
+
+        class RoadConditionTile {
+            constructor(name, image, cornerTile) {
+                this.name = name;
+                this.image = image;
+                this.cornerTile = cornerTile;
+            }
+        }
+
+        roadConditionTiles = [
+            new RoadConditionTile("Fast Corner", "Fast Corner.png", true),
+            new RoadConditionTile("Slow Corner", "Slow Corner.png", true),
+            new RoadConditionTile("Hot Corner", "Hot Corner.png", true),
+            new RoadConditionTile("Slipstream", "+1 Slipstream.png", false),
+            new RoadConditionTile("Free Boost", "Free Boost.png", false),
+            new RoadConditionTile("Weather Effects", "Weather.png", false),
+        ];
+
+
+        function rollWeather() {
+            let old = document.getElementById("weatherDiv");
+            if (old) {
+                old.remove();
+            }
+
+            let weatherCard = weatherCards[Math.floor(Math.random() * weatherCards.length)];
+            let weatherDiv = document.createElement("div");
+            let eventCard = scoreCard.getCurrentEventCard();
+            let track = trackMap.get(eventCard.track);
+
+            weatherDiv.id = "weatherDiv";
+
+            weatherDiv.innerHTML = `<br><h3>Weather: for ${track.name}</h3>`;
+            weatherDiv.innerHTML += `<strong>${weatherCard.name}</strong><br>`;
+            weatherDiv.innerHTML += `${weatherCard.description}<br>`;
+            weatherDiv.innerHTML += `<img src="${weatherCard.image}" alt="${weatherCard.name}" style="width: 400px; height: 300px;">`;
+
+            let tilesToAdd = track.turns - track.chicanes.length;
+
+            let rcts = [];
+            for (rct of roadConditionTiles) {
+                rcts.push(rct);
+                rcts.push(rct);
+            }
+
+            let corner = 1;
+            for (let tileIndex = 0; tileIndex < tilesToAdd; tileIndex++) {
+                let j = Math.floor(Math.random() * rcts.length);
+                let rct = rcts[j];
+                let tileDiv = document.createElement("div");
+                tileDiv.innerHTML = `<br><strong>${rct.name}: </strong>`;
+                if (track.chicanes.includes(corner)) {
+                    if (rct.cornerTile) {
+                        tileDiv.innerHTML += `between corners ${corner} and ${corner + 1} <br>`;
+                    } else {
+                        tileDiv.innerHTML += `between corners ${corner + 1} and ${corner + 2} <br>`;
+                    }
+                    corner += 2;
+                } else {
+                    if (rct.cornerTile) {
+                        tileDiv.innerHTML += `on corner ${corner} <br>`;
+                    } else {
+                        tileDiv.innerHTML += `between corners ${corner} and ${corner + 1} <br>`;
+                    }
+                    corner += 1;
+                }
+                tileDiv.innerHTML += `<img src="${rct.image}" alt="${rct.name}" style="width: 100px; height: 100px;">`;
+                weatherDiv.appendChild(tileDiv);
+                rcts.splice(j, 1);
+            }
+
+
+            document.body.appendChild(weatherDiv);
+        }
     </script>
 </head>
 
 
 <body onload="loadScores()">
-
     <h2>HEAT:<br>PEDAL TO THE METAL<br>Online Score Card</h2>
     <table id="scoreTable">
     </table>
@@ -987,11 +1095,16 @@
     <button onclick="clearScores()">Clear Scores</button>
     <button onclick="resetScoreCard()">Reset Score Card</button>
     <br>
+    <button onclick="rollWeather()">Generate Weather</button>
     <br>
-    Scan this code to share the link to this page.
     <br>
-    <img src="qr-code.png" alt="QR Code"
-        style="display: block; margin: 20px 0; width: 200px; height: 200px; float: left;">
+    <div>
+        Scan this code to share the link to this page.
+        <br>
+        <img src="qr-code.png" alt="QR Code"
+            style="display: block; margin: 20px 0; width: 200px; height: 200px; float: none;">
+        <br>
+    </div>
 </body>
 
 

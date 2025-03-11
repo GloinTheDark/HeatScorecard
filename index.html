@@ -638,6 +638,7 @@
             while (table.firstChild) {
                 table.removeChild(table.firstChild);
             }
+            document.getElementById("addRacer").disabled = scorecard.numberOfPlayers >= 8;
             buildTable();
         }
 
@@ -775,6 +776,7 @@
             input.style.backgroundColor = colorValues[colorIndex];
             input.style.color = textColors[colorIndex];
             input.style.padding = "10px";
+            input.maxLength = 20;
             input.type = "text";
             input.value = defaultText;
             window.setTimeout(function () { input.focus(); }, 0);
@@ -876,7 +878,6 @@
                 scorecard.deletePlayer(player);
                 saveScores();
                 rebuildTable();
-
             }
 
         }
@@ -924,9 +925,6 @@
             let colorIndex = getUnusedColorIndex();
             player = new Player(colorNames[colorIndex], colorIndex);
             scorecard.appendPlayer(player);
-            if (scorecard.numberOfPlayers >= 8) {
-                event.target.disabled = true;
-            }
             scorecard.fix();
             saveScores();
             rebuildTable();

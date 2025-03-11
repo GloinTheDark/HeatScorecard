@@ -507,7 +507,21 @@
             cell.style.color = textColors[colorIndex];
 
             // set the name
-            cell.innerText = player.name;
+            cell.innerText = player.name + " ✎";
+            cell.style.cursor = "pointer";
+
+            // let editIcon = document.createElement("span");
+            // editIcon.innerHTML = "&#9998;";
+            // editIcon.style.fontSize = "12px";
+            // editIcon.style.float = "right";
+            // // editIcon.style.verticalAlign = "top";
+            // editIcon.style.marginRight = "5px";
+            // // editIcon.style.marginTop = "5px";
+            // editIcon.style.cursor = "pointer";
+            // editIcon.onclick = function () { openForm(player); };
+            // cell.appendChild(editIcon);
+
+
             cell.onclick = function () { openForm(player); };
             nameRow.appendChild(cell);
 
@@ -544,8 +558,9 @@
             nameRow.id = "nameRow";
             let raceSeriesCell = document.createElement("td");
             raceSeriesCell.style.width = "70px";
+            raceSeriesCell.style.cursor = "pointer";
             let series = seriesMap.get(scorecard.seriesName);
-            raceSeriesCell.innerHTML = "<strong>Series<br>" + scorecard.seriesName + "</strong>";
+            raceSeriesCell.innerHTML = "<strong>Series<br>" + scorecard.seriesName + "</strong> ✎";
             raceSeriesCell.onclick = function () {
                 showSeriesInfo();
             };
@@ -557,8 +572,10 @@
                 row.id = `race${race}`;
                 let raceRowHeaderCell = document.createElement("td");
                 raceRowHeaderCell.style.width = "50px";
+                raceRowHeaderCell.style.height = "50px";
+                raceRowHeaderCell.style.cursor = "pointer";
                 let eventCard = scorecard.series.eventCards[race];
-                raceRowHeaderCell.innerHTML = `Race ${race + 1}<br>${eventCard.track}`;
+                raceRowHeaderCell.innerHTML = `Race ${race + 1}<br>${eventCard.track} 🛈`;
                 raceRowHeaderCell.onclick = function () {
                     showRaceInfo(race);
                 };
@@ -598,11 +615,11 @@
             // todo remove later
             {
                 let scores = localStorage.getItem("scoreCard");
-                if(scores) {
+                if (scores) {
                     localStorage.removeItem("scoreCard");
                     localStorage.setItem("scorecard", scores);
-                }                
-            }            
+                }
+            }
             console.log("--- loadScores");
             let scores = localStorage.getItem("scorecard");
             if (scores) {
@@ -1122,7 +1139,7 @@
     <table id="scoreTable">
     </table>
 
-    <button onclick="sortColumnsByTotal()">Sort Racers</button>
+    <button onclick="sortColumnsByTotal()">Sort by Start Order</button>
     <button id="addRacer" onclick="addRacer()">Add Racer</button>
     <!-- <button id="addRace" onclick="addRace()">Add Race</button> -->
     <br>

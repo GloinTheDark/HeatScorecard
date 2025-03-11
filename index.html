@@ -112,6 +112,9 @@
             }
         }
 
+        let infoString = "ℹ️";
+        let editString = "✏️";
+
         let tracks = [
             new Track("Great Britain", "GB", 2, 63, 5, []),
             new Track("United States", "USA", 2, 69, 4, []),
@@ -507,21 +510,8 @@
             cell.style.color = textColors[colorIndex];
 
             // set the name
-            cell.innerText = player.name + " ✎";
+            cell.innerText = player.name + " " + editString;
             cell.style.cursor = "pointer";
-
-            // let editIcon = document.createElement("span");
-            // editIcon.innerHTML = "&#9998;";
-            // editIcon.style.fontSize = "12px";
-            // editIcon.style.float = "right";
-            // // editIcon.style.verticalAlign = "top";
-            // editIcon.style.marginRight = "5px";
-            // // editIcon.style.marginTop = "5px";
-            // editIcon.style.cursor = "pointer";
-            // editIcon.onclick = function () { openForm(player); };
-            // cell.appendChild(editIcon);
-
-
             cell.onclick = function () { openForm(player); };
             nameRow.appendChild(cell);
 
@@ -560,7 +550,7 @@
             raceSeriesCell.style.width = "70px";
             raceSeriesCell.style.cursor = "pointer";
             let series = seriesMap.get(scorecard.seriesName);
-            raceSeriesCell.innerHTML = "<strong>Series<br>" + scorecard.seriesName + "</strong> ✎";
+            raceSeriesCell.innerHTML = "<strong>Series</strong><br>" + scorecard.seriesName + " " + editString;
             raceSeriesCell.onclick = function () {
                 showSeriesInfo();
             };
@@ -575,7 +565,7 @@
                 raceRowHeaderCell.style.height = "50px";
                 raceRowHeaderCell.style.cursor = "pointer";
                 let eventCard = scorecard.series.eventCards[race];
-                raceRowHeaderCell.innerHTML = `Race ${race + 1}<br>${eventCard.track} ✎`; // "🛈" does not render on phones
+                raceRowHeaderCell.innerHTML = `<strong>Race ${race + 1}</strong><br>${eventCard.track} ${infoString}`;
                 raceRowHeaderCell.onclick = function () {
                     showRaceInfo(race);
                 };
@@ -1149,6 +1139,7 @@
     <br>
     <br>
     <div id="qrcode">
+        <br>
         Scan this code to share the link to this page.
         <br>
         <img src="qr-code.png" alt="QR Code"

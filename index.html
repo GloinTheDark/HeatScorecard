@@ -17,7 +17,7 @@
 
         th,
         td {
-            border: 1px solid black;
+            border: 2px solid #777;
             padding: 0;
         }
 
@@ -575,7 +575,7 @@
                 raceRowHeaderCell.style.height = "50px";
                 raceRowHeaderCell.style.cursor = "pointer";
                 let eventCard = scorecard.series.eventCards[race];
-                raceRowHeaderCell.innerHTML = `Race ${race + 1}<br>${eventCard.track} 🛈`;
+                raceRowHeaderCell.innerHTML = `Race ${race + 1}<br>${eventCard.track} ✎`; // "🛈" does not render on phones
                 raceRowHeaderCell.onclick = function () {
                     showRaceInfo(race);
                 };
@@ -1137,6 +1137,7 @@
 <body onload="loadScores()">
     <h2>HEAT:<br>PEDAL TO THE METAL<br>Online Scorecard</h2>
     <table id="scoreTable">
+
     </table>
 
     <button onclick="sortColumnsByTotal()">Sort by Start Order</button>

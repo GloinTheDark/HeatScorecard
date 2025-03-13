@@ -93,6 +93,26 @@
             width: 100px;
             text-align: center;
         }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            /* Hidden by default */
+            position: fixed;
+            /* Stay in place */
+            z-index: 1000;
+            /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%;
+            /* Full width */
+            height: 100%;
+            /* Full height */
+            overflow: auto;
+            /* Enable scroll if needed */
+            background-color: rgba(0, 0, 0, 0.5);
+            /* Black w/ opacity */
+        }
     </style>
     <script>
         console.log("--- Table Initializing");
@@ -300,27 +320,27 @@
         let serieses = [
             {
                 name: "1961",
-                comment: "The inaugural season of HEAT: Pedal to the Metal",
+                comment: "The inaugural season of HEAT: Pedal to the Metal, 3 Race Series",
                 eventCards: eventCards.filter(card => card.season === "1961")
             },
             {
                 name: "1962",
-                comment: "The second season of HEAT: Pedal to the Metal",
+                comment: "The second season of HEAT: Pedal to the Metal, 2 Race Series",
                 eventCards: eventCards.filter(card => card.season === "1962")
             },
             {
                 name: "1963",
-                comment: "The third season of HEAT: Pedal to the Metal",
+                comment: "The third season of HEAT: Pedal to the Metal, 4 Race Series",
                 eventCards: eventCards.filter(card => card.season === "1963")
             },
             {
                 name: "GOAT",
-                comment: "Greatest of All Time: 1961-1963",
+                comment: "Greatest of All Time: 1961-1963, 10 Race series",
                 eventCards: eventCards.filter(card => ["1961", "1962", "1963"].includes(card.season))
             },
             {
                 name: "1964",
-                comment: "From HEAT: Heavy Rain",
+                comment: "From HEAT: Heavy Rain, 4 Race Series",
                 eventCards: eventCards.filter(card => card.season === "1964")
             },
             {
@@ -345,11 +365,43 @@
             return `${placeNames[place]} (${placePoints[place]})`;
         }
 
-        class Player {
+        class Racer {
+            name = "";
+            colorIndex = 0;
+            legend = false;
             place = [];
-            constructor(name, colorIndex) {
+            total = 0;
+
+            constructor(name, colorIndex, legend) {
                 this.name = name;
                 this.colorIndex = colorIndex;
+                this.legend = legend;
+            }
+
+            get title() {
+                return this.legend ? "Legend" : "Player";
+            }
+
+            clone() {
+                return Racer.clone(this);
+            }
+
+            static clone(other) {
+                if (other && typeof other === 'object') {
+                    if (other.hasOwnProperty('place')) {
+                        let newRacer = new Racer(other.name, other.colorIndex, other.legend);
+                        newRacer.place = structuredClone(other.place);
+                        newRacer.total = other.total;
+                        return newRacer;
+                    }
+                }
+                return undefined;
+            }
+
+            static reviver(key, value) {
+                let r = Racer.clone(value);
+                if (r) return r;
+                return value;
             }
         }
 
@@ -357,13 +409,26 @@
             players = [];
             constructor(seriesName, players) {
                 this.seriesName = seriesName;
-                this.appendPlayer(players);
+                this.appendRacers(players);
             }
+
+            clone() {
+                return Scorecard.clone(this);
+            }
+
+            static clone(other) {
+                let newScorecard = new Scorecard(other.seriesName, other.players);
+                newScorecard.name = other.name;
+                newScorecard.lastSaveDate = new Date(other.lastSaveDate);
+                newScorecard.fix();
+                return newScorecard;
+            }
+
             get series() {
                 return seriesMap.get(this.seriesName);
             }
 
-            get numberOfPlayers() {
+            get numberOfRacers() {
                 return this.players.length;
             }
 
@@ -371,17 +436,24 @@
                 return this.series.eventCards.length;
             }
 
-            appendPlayer(players) {
-                if (players instanceof Player) {
-                    this.players.push(players);
-                } else if (Array.isArray(players)) {
-                    for (let player of players) {
-                        this.players.push(player);
-                    }
+            appendRacer(racer) {
+                if (racer instanceof Racer) {
+                    this.players.push(racer.clone());
+                } else {
+                    let r = new Racer(racer.name, racer.colorIndex, racer.legend);
+                    r.place = structuredClone(racer.place);
+                    r.total = racer.total;
+                    this.appendRacer(r);
                 }
             }
 
-            deletePlayer(player) {
+            appendRacers(players) {
+                for (let player of players) {
+                    this.appendRacer(player);
+                }
+            }
+
+            deleteRacer(player) {
                 let index = this.players.indexOf(player);
                 if (index > -1) {
                     this.players.splice(index, 1);
@@ -392,7 +464,7 @@
                 for (let player of this.players) {
                     player.place = new Array(this.getNumberOfRaces()).fill(0);
                 }
-                this.updatePlayerTotals();
+                this.updateRacerTotals();
             }
 
             fix() {
@@ -404,17 +476,10 @@
                         player.place.push(0);
                     }
                 }
-                this.updatePlayerTotals();
+                this.updateRacerTotals();
             }
 
-            static clone(other) {
-                let newScorecard = new Scorecard(other.seriesName, other.players);
-                newScorecard.players = structuredClone(other.players);
-                newScorecard.fix();
-                return newScorecard;
-            }
-
-            updatePlayerTotals() {
+            updateRacerTotals() {
                 let sr = seriesMap.get(this.seriesName);
                 for (let player of this.players) {
                     let total = 0;
@@ -455,64 +520,139 @@
 
                 return scorecard.series.eventCards[l - 1];
             }
+
+            getSaveString() {
+                return JSON.stringify(this, (key, value) => {
+                    switch (key) {
+                        case "seed":
+                        case "total":
+                            return undefined;
+                    }
+                    return value;
+                });
+            }
+
+            matches(other) {
+                if (this.seriesName !== other.seriesName) return false;
+                if (this.players.length !== other.players.length) return false;
+                for (let i = 0; i < this.players.length; i++) {
+                    if (this.players[i].name !== other.players[i].name) return false;
+                    if (this.players[i].colorIndex !== other.players[i].colorIndex) return false;
+                    for (let j = 0; j < this.getNumberOfRaces(); j++) {
+                        if (this.players[i].place[j] !== other.players[i].place[j]) return false;
+                    }
+                }
+                if (this.lastSaveDate - other.lastSaveDate != 0) return false;
+                if (this.name !== other.name) return false;
+                return true;
+            }
+
+            isModified() {
+                let savedScorecards = JSON.parse(localStorage.getItem("savedScorecards"), Scorecard.reviver);
+                if (savedScorecards) {
+                    for (let savedScorecard of savedScorecards) {
+                        if (this.matches(savedScorecard)) {
+                            return false;
+                        }
+                    }
+                }
+                return true;
+            }
+
+            static reviver(key, value) {
+                if (value && typeof value === 'object') {
+                    if (value.hasOwnProperty('place')) {
+                        return Racer.clone(value);
+                    } else if (value.hasOwnProperty('seriesName')) {
+                        return Scorecard.clone(value);
+                    }
+                }
+                if (key === "lastSaveDate") {
+                    return new Date(value);
+                }
+                return value;
+            }
+
+            hasScores() {
+                for (let player of this.players) {
+                    for (let i = 0; i < this.getNumberOfRaces(); i++) {
+                        if (player.place[i] > 0) return true;
+                    }
+                }
+                return false;
+            }
+
         }
 
         let defaultScoreCard = new Scorecard("1961", [
-            new Player("Red", 3),
-            new Player("Blue", 1),
+            new Racer("Mario", 3, false),
+            new Racer("Luigi", 2, false),
         ]);
 
-
-        let scorecard = Scorecard.clone(defaultScoreCard);
+        let scorecard = defaultScoreCard.clone();
 
         let colorNames = ["Yellow", "Blue", "Green", "Red", "Black", "Gray", "Orange", "Purple"];
         let colorValues = ["yellow", "blue", "green", "red", "black", "lightgray", "orange", "purple"];
         let textColors = ["black", "white", "white", "white", "white", "black", "black", "white"];
 
-        // document.addEventListener("DOMContentLoaded", buildTable());
-
-
-        let gThingToClose = null;
-        let gThingCloser = null;
-
-        function closePopupOnOutsideClick(thingToClose, thingCloser) {
-            console.log("closePopupOnOutsideClick");
-            window.setTimeout(function () {
-                gThingToClose = thingToClose;
-                gThingCloser = thingCloser;
-            }, 0);
-        }
-
-        window.onclick = function (event) {
-            if (gThingToClose && gThingCloser) {
-                rect = gThingToClose.getBoundingClientRect();
-                if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) {
-                    gThingCloser();
-                    gThingToClose = null;
-                    gThingCloser = null;
+        function restrictTab(div) {
+            console.log("--- restrictTab");
+            // only allow tab key to move focus to the next element in the div
+            // and not to the next element in the document
+            div.addEventListener("keydown", function (event) {
+                if (event.key === "Tab") {
+                    console.log("tab in popup");
+                    // prevent default tab behavior
+                    event.preventDefault();
+                    // move focus to the next element in the div
+                    let focusableElements = div.querySelectorAll("button, input, select, textarea");
+                    let index = Array.prototype.indexOf.call(focusableElements, document.activeElement);
+                    // not a bug. index -1 + 1 == 0
+                    focusableElements[(index + 1) % focusableElements.length].focus();
+                } else if (event.key === "Escape") {
+                    console.log("escape in popup");
+                    // close the modal
+                    closeModal();
                 }
-            }
+            });
         }
+
+        function openModalDiv(modelContentDiv) {
+            console.log("--- openModalDiv");
+            let modal = document.getElementById("modal");
+            modal.style.display = "block";
+
+            modal.appendChild(modelContentDiv);
+            modal.onclick = function (event) {
+                if (event.target === modal) {
+                    modal.style.display = "none";
+                    modal.removeChild(modelContentDiv);
+                }
+            };
+            restrictTab(modelContentDiv);
+
+            let fe = modelContentDiv.querySelectorAll("button, input, select, textarea");
+            if (fe && fe.length > 0) window.setTimeout(function () { fe[0].focus(); }, 0);
+
+        }
+
+        function closeModal() {
+            console.log("--- closeModal");
+            let modal = document.getElementById("modal");
+            // remove child
+            while (modal.firstChild) {
+                modal.removeChild(modal.firstChild);
+            }
+            modal.style.display = "none";
+        }
+
         window.ontouchend = function (event) {
-            if (gThingToClose && gThingCloser) {
-                rect = gThingToClose.getBoundingClientRect();
-                if (
-                    event.touches.length === 1 && (
-                        event.touches[0].clientX < rect.left ||
-                        event.touches[0].clientX > rect.right ||
-                        event.touches[0].clientY < rect.top ||
-                        event.touches[0].clientY > rect.bottom
-                    )
-                ) {
-                    gThingCloser();
-                    gThingToClose = null;
-                    gThingCloser = null;
-                }
-            }
+            // TODO
+            // test on ios and android
         }
 
-        function addPlayerColumn(player) {
-            console.log("--- addPlayerColumn");
+        function addRacerColumn(player) {
+            console.log("--- addRacerColumn");
             // console.log(player);
 
             let table = document.getElementById("scoreTable");
@@ -527,9 +667,9 @@
             cell.style.color = textColors[colorIndex];
 
             // set the name
-            cell.innerText = player.name + " " + editString;
+            cell.innerHTML = `<strong>${player.title}</strong><br>${player.name} ${editString}`;
             cell.style.cursor = "pointer";
-            cell.onclick = function () { openForm(player); };
+            cell.onclick = function () { editRacerMenu(player); };
             nameRow.appendChild(cell);
 
             // set the width
@@ -555,7 +695,6 @@
             totalCell.innerText = player.total;
             totalRow.appendChild(totalCell);
         }
-
 
         function buildTable() {
             console.log("--- buildTable");
@@ -594,26 +733,19 @@
             let totalRow = document.createElement("tr");
             totalRow.id = "totalRow";
             let totalCell = document.createElement("td")
-            totalCell.innerText = "Total";
+            totalCell.innerText = "Total Points";
             totalCell.onclick = function () { sortColumnsByTotal(); };
             totalRow.appendChild(totalCell);
             table.appendChild(totalRow);
 
             scorecard.players.forEach(player => {
-                addPlayerColumn(player);
+                addRacerColumn(player);
             });
         };
 
         function saveScores() {
             console.log("--- saveScores");
-            saveString = JSON.stringify(scorecard, (key, value) => {
-                switch (key) {
-                    case "seed":
-                    case "total":
-                        return undefined;
-                }
-                return value;
-            });
+            saveString = scorecard.getSaveString();
             console.log(saveString);
             localStorage.setItem("scorecard", saveString);
         }
@@ -630,11 +762,9 @@
             console.log("--- loadScores");
             let scores = localStorage.getItem("scorecard");
             if (scores) {
-                let saveScoreCard = JSON.parse(scores);
-                scorecard = new Scorecard(saveScoreCard.seriesName, saveScoreCard.players);
-                scorecard.fix();
+                scorecard = JSON.parse(scores, Scorecard.reviver);
             } else {
-                scorecard = Scorecard.clone(defaultScoreCard);
+                scorecard = defaultScoreCard.clone();
             }
             rebuildTable();
         }
@@ -645,7 +775,9 @@
             while (table.firstChild) {
                 table.removeChild(table.firstChild);
             }
-            document.getElementById("addRacer").disabled = scorecard.numberOfPlayers >= 8;
+            document.getElementById("addPlayer").disabled = scorecard.numberOfRacers >= 8;
+            document.getElementById("addLegend").disabled = scorecard.numberOfRacers >= 8;
+            document.getElementById("startOrder").innerHTML = (scorecard.hasScores() ? "Sort by" : "Randomize") + " Starting Order";
             buildTable();
         }
 
@@ -670,23 +802,23 @@
                 place = 0;
             }
             player.place[race] = place;
-            scorecard.updatePlayerTotals();
+            scorecard.updateRacerTotals();
             saveScores();
             rebuildTable();
         }
 
 
-        function clearScores() {
-            if (confirm("Are you sure you want to clear scores?")) {
+        async function clearScores() {
+            if (await myConfirm("Are you sure you want to clear scores?")) {
                 scorecard.clearScores();
                 saveScores();
                 rebuildTable();
             }
         }
 
-        function resetScoreCard() {
-            if (confirm("Are you sure you want to clear the player names?")) {
-                scorecard = Scorecard.clone(defaultScoreCard);
+        async function resetScorecard() {
+            if (await myConfirm("Are you sure you want to reset the scorecard?")) {
+                scorecard = defaultScoreCard.clone();
                 saveScores();
                 rebuildTable();
             }
@@ -710,19 +842,13 @@
             let closeButton = document.createElement("button");
             closeButton.innerText = "Close";
             closeButton.onclick = function () {
-                document.body.removeChild(popup);
+                closeModal();
             };
             popup.appendChild(closeButton);
 
-
             popup.classList.add("popup");
 
-            document.body.appendChild(popup);
-            closePopupOnOutsideClick(popup, function () {
-                if (document.body.contains(popup)) {
-                    document.body.removeChild(popup);
-                }
-            });
+            openModalDiv(popup);
         }
 
         function showSeriesInfo() {
@@ -743,7 +869,7 @@
             let changeSeriesButton = document.createElement("button");
             changeSeriesButton.innerText = "Change Series";
             changeSeriesButton.onclick = function () {
-                document.body.removeChild(popupSeriesInfo);
+                closeModal();
                 let buttons = serieses.map((series, index) => ({
                     text: series.name,
                     info: series.comment,
@@ -763,16 +889,11 @@
             let closeButton = document.createElement("button");
             closeButton.innerText = "Close";
             closeButton.onclick = function () {
-                document.body.removeChild(popupSeriesInfo);
+                closeModal();
             };
             popupSeriesInfo.appendChild(closeButton);
 
-            document.body.appendChild(popupSeriesInfo);
-            closePopupOnOutsideClick(popupSeriesInfo, function () {
-                if (document.body.contains(popupSeriesInfo)) {
-                    document.body.removeChild(popupSeriesInfo);
-                }
-            });
+            openModalDiv(popupSeriesInfo);
         }
 
         function popupTextInputPrompt(message, defaultText, action, colorIndex) {
@@ -794,13 +915,12 @@
                     case "Enter":
                         if (action) action(input.value);
                     case "Escape":
-                        document.body.removeChild(popup);
+                        closeModal();
                         break;
                 }
             };
 
             popup.appendChild(input);
-            document.body.appendChild(popup);
 
             popup.appendChild(document.createElement("br"));
 
@@ -808,33 +928,28 @@
             buttonElement.innerText = "OK";
             buttonElement.onclick = function () {
                 if (action) action(input.value);
-                document.body.removeChild(popup);
+                closeModal();
             };
             popup.appendChild(buttonElement);
 
             let cancelButton = document.createElement("button");
             cancelButton.innerText = "Cancel";
             cancelButton.onclick = function () {
-                document.body.removeChild(popup);
+                closeModal();
             };
             popup.appendChild(cancelButton);
-            popup.style.display = "block";
-
-            closePopupOnOutsideClick(popup, function () {
-                if (document.body.contains(popup)) {
-                    document.body.removeChild(popup);
-                }
-            });
+            openModalDiv(popup);
         }
 
         function popupButtonWindow(message, buttons) {
             let popup = document.createElement("div");
             popup.classList.add("popup");
             popup.innerHTML = message + "<br>";
-            document.body.appendChild(popup);
 
             for (let button of buttons) {
                 let buttonElement = document.createElement("button");
+                // set focus to the button
+
                 buttonElement.innerText = button.text;
                 if (button.colorIndex !== undefined) {
                     buttonElement.style.backgroundColor = colorValues[button.colorIndex];
@@ -842,7 +957,7 @@
                 }
                 buttonElement.onclick = function () {
                     if (button.action) button.action();
-                    document.body.removeChild(popup);
+                    closeModal();
                 };
                 popup.appendChild(buttonElement);
                 if (button.info) {
@@ -851,38 +966,31 @@
                     popup.appendChild(infoElement);
                 }
             }
-            popup.style.display = "block";
-
-            closePopupOnOutsideClick(popup, function () {
-                if (document.body.contains(popup)) {
-                    document.body.removeChild(popup);
-                }
-            });
+            openModalDiv(popup);
         }
 
-        function renamePlayer(player) {
-            closeForm();
+        function renameRacer(racer) {
             popupTextInputPrompt(
-                "Enter new name for player:",
-                player.name,
+                `Enter new name for ${racer.title}:`,
+                racer.name,
                 function (newName) {
                     if (newName) {
-                        player.name = newName;
+                        racer.name = newName;
                         saveScores();
                         rebuildTable();
                     }
-                }, player.colorIndex);
+                }, racer.colorIndex);
         }
 
-        function deletePlayer(player, confirm) {
+        function deleteRacer(player, confirm) {
             if (confirm) {
-                closeForm();
-                popupButtonWindow(`Are you sure you want to delete player "${player.name}"?`, [
-                    { text: "Delete", action: function () { deletePlayer(player, false); } },
+                closeModal();
+                popupButtonWindow(`Are you sure you want to delete ${player.title} "${player.name}"?`, [
+                    { text: "Delete", action: function () { deleteRacer(player, false); } },
                     { text: "Cancel" }
                 ]);
             } else {
-                scorecard.deletePlayer(player);
+                scorecard.deleteRacer(player);
                 saveScores();
                 rebuildTable();
             }
@@ -928,13 +1036,16 @@
             rebuildTable();
         }
 
-        function addRacer() {
+        function addRacer(legend) {
             let colorIndex = getUnusedColorIndex();
-            player = new Player(colorNames[colorIndex], colorIndex);
-            scorecard.appendPlayer(player);
+            let racer = new Racer(colorNames[colorIndex], colorIndex, legend);
+            scorecard.appendRacer(racer);
             scorecard.fix();
             saveScores();
             rebuildTable();
+            if (!legend) {
+                renameRacer(racer);
+            }
         }
 
         function chooseColor(player) {
@@ -948,18 +1059,23 @@
                 { text: "Gray", action: () => { changeColor(5, player); }, colorIndex: 5 },
                 { text: "Orange", action: () => { changeColor(6, player); }, colorIndex: 6 },
                 { text: "Purple", action: () => { changeColor(7, player); }, colorIndex: 7 }
-
             ]);
         }
 
         function changeColor(colorIndex, player) {
+            let oldColorIndex = player.colorIndex;
+            for (racer of scorecard.players) {
+                if (racer.colorIndex === colorIndex) {
+                    racer.colorIndex = oldColorIndex;
+                }
+            }
             player.colorIndex = colorIndex;
             saveScores();
             rebuildTable();
         }
 
-        function openForm(player) {
-            console.log("--- openForm");
+        function editRacerMenu(player) {
+            let title = player.title;
 
             let popup = document.createElement("div");
             popup.id = "myForm";
@@ -967,13 +1083,14 @@
 
 
             let label1 = document.createElement("label");
-            label1.innerText = "Player Name:";
+            label1.innerText = `${title} Name:`;
             popup.appendChild(label1);
 
             let nameField = document.createElement("label");
             nameField.id = "formNameField";
             nameField.onclick = function () {
-                renamePlayer(player);
+                closeModal();
+                renameRacer(player);
             };
             nameField.classList.add("player-name");
             nameField.style.backgroundColor = colorValues[player.colorIndex];
@@ -984,27 +1101,26 @@
 
             popup.appendChild(document.createElement("br"));
 
-            // <button type="button" onclick="renamePlayer()">Rename Player</button>
             button1 = document.createElement("button");
-            button1.innerText = "Rename Player";
+            button1.innerText = `Rename ${title}`;
             button1.onclick = function () {
-                renamePlayer(player);
+                closeModal();
+                renameRacer(player);
             };
             popup.appendChild(button1);
 
-            // <button id="colorButton" type="button" onclick="{closeForm(); chooseColor()}">Change Color</button>
             button2 = document.createElement("button");
             button2.innerText = "Change Color";
             button2.onclick = function () {
-                closeForm();
+                closeModal();
                 chooseColor(player);
             };
             popup.appendChild(button2);
 
             button3 = document.createElement("button");
-            button3.innerText = "Delete Player";
+            button3.innerText = `Delete ${title}`;
             button3.onclick = function () {
-                deletePlayer(player, true);
+                deleteRacer(player, true);
             };
             popup.appendChild(button3);
 
@@ -1015,23 +1131,11 @@
             button4 = document.createElement("button");
             button4.innerText = "Back";
             button4.onclick = function () {
-                closeForm();
+                closeModal();
             };
             popup.appendChild(button4);
 
-            document.body.appendChild(popup);
-
-            closePopupOnOutsideClick(popup, function () {
-                if (document.body.contains(popup)) {
-                    document.body.removeChild(popup);
-                }
-            });
-        }
-        function closeForm() {
-            let popup = document.getElementById("myForm");
-            if (popup) {
-                document.body.removeChild(popup);
-            }
+            openModalDiv(popup);
         }
 
         class WeatherCard {
@@ -1135,22 +1239,126 @@
             // document.body.appendChild(weatherDiv);
             document.body.insertBefore(weatherDiv, document.getElementById("qrcode"));
         }
+
+        function saveScorecard() {
+            let savedScorecards = JSON.parse(localStorage.getItem("savedScorecards"), Scorecard.reviver);
+            if (!savedScorecards) {
+                savedScorecards = [];
+            }
+            if (!scorecard.name) {
+                scorecard.name = `Scorecard ${savedScorecards.length + 1}`;
+            }
+            popupTextInputPrompt("Enter a name for the scorecard:", scorecard.name, function (name) {
+                if (name) {
+                    scorecard.name = name;
+                    scorecard.lastSaveDate = new Date();
+                    found = false;
+                    for (let i = 0; i < savedScorecards.length; i++) {
+                        if (savedScorecards[i].name === scorecard.name) {
+                            savedScorecards[i] = scorecard;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        savedScorecards.push(scorecard);
+                    }
+                    localStorage.setItem("savedScorecards", JSON.stringify(savedScorecards));
+                    saveScores();
+                }
+            }, 0);
+        }
+
+        function relativeDateString(date) {
+            let now = new Date();
+            let diff = now - new Date(date);
+            if (diff < 1000 * 60) return "just now";
+            if (diff < 1000 * 60 * 2) return "1 minute ago";
+            if (diff < 1000 * 60 * 60) return Math.floor(diff / (1000 * 60)) + " minutes ago";
+            if (diff < 1000 * 60 * 60 * 2) return "1 hour ago";
+            if (diff < 1000 * 60 * 60 * 24) return Math.floor(diff / (1000 * 60 * 60)) + " hours ago";
+            return Math.floor(diff / (1000 * 60 * 60 * 24)) + " days ago";
+        }
+
+        function myConfirm(message, yes = "Yes", no = "No") {
+            return new Promise((resolve) => {
+                let popup = document.createElement("div");
+                popup.classList.add("popup");
+                popup.innerHTML = message + "<br>";
+                let button1 = document.createElement("button");
+                button1.innerText = yes;
+                button1.onclick = function () {
+                    resolve(true);
+                    closeModal();
+                };
+                popup.appendChild(button1);
+
+                let button2 = document.createElement("button");
+                button2.innerText = no;
+                button2.onclick = function () {
+                    resolve(false);
+                    closeModal();
+                };
+                popup.appendChild(button2);
+
+                openModalDiv(popup);
+            });
+        }
+
+        async function loadScorecard() {
+            if (scorecard.isModified() && !await myConfirm("You have unsaved changes. Are you sure you want to load a new scorecard?", "Load Without Saving", "Cancel")) {
+                return;
+            }
+
+            let savedScorecards = JSON.parse(localStorage.getItem("savedScorecards"), Scorecard.reviver);
+            if (!savedScorecards) {
+                savedScorecards = [];
+            }
+
+            let buttons = savedScorecards.map((savedScorecard, index) => ({
+                text: savedScorecard.name,
+                info: `Series: "${savedScorecard.seriesName}" Racers: ${savedScorecard.players.length} Saved: ${relativeDateString(savedScorecard.lastSaveDate)}`,
+                action: function () {
+                    scorecard = savedScorecard.clone();
+                    saveScores();
+                    rebuildTable();
+                }
+            }));
+            popupButtonWindow("Choose a scorecard", buttons);
+
+        }
+
     </script>
 </head>
 
-
 <body onload="loadScores()">
+
+    <!-- Modal Structure -->
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" onclick="closeModal()">&times;</span>
+        </div>
+    </div>
+
+
     <h2>HEAT:<br>PEDAL TO THE METAL<br>Online Scorecard</h2>
     <table id="scoreTable">
 
     </table>
 
-    <button onclick="sortColumnsByTotal()">Sort by Start Order</button>
-    <button id="addRacer" onclick="addRacer()">Add Racer</button>
+
+
+
+    <button id="startOrder" onclick="sortColumnsByTotal()">Sort by Start Order</button>
+    <button id="addPlayer" onclick="addRacer(false)">Add Player</button>
+    <button id="addLegend" onclick="addRacer(true)">Add Legend</button>
     <!-- <button id="addRace" onclick="addRace()">Add Race</button> -->
     <br>
     <button onclick="clearScores()">Clear Scores</button>
-    <button onclick="resetScoreCard()">Reset Scorecard</button>
+    <button onclick="resetScorecard()">Reset Scorecard</button>
+    <br>
+    <button onclick="saveScorecard()">Save Scorecard</button>
+    <button onclick="loadScorecard()">Load Scorecard</button>
     <br>
     <button onclick="rollWeather()">Generate Weather</button>
     <br>

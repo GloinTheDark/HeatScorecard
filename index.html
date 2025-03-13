@@ -78,6 +78,11 @@
             margin: 5px;
         }
 
+        /* .popup table th,
+        td {
+            margin: 5px;
+        } */
+
         .popup input {
             margin-top: 10px;
         }
@@ -436,6 +441,21 @@
                 return this.series.eventCards.length;
             }
 
+            getNumberOfRacesCompleted() {
+                let count = 0;
+                for (let i = 0; i < this.getNumberOfRaces(); i++) {
+                    let found = false
+                    for (let player of this.players) {
+                        if (player.place[i] === 0) {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) count++;
+                }
+                return count;
+            }
+
             appendRacer(racer) {
                 if (racer instanceof Racer) {
                     this.players.push(racer.clone());
@@ -548,12 +568,10 @@
             }
 
             isModified() {
-                let savedScorecards = JSON.parse(localStorage.getItem("savedScorecards"), Scorecard.reviver);
-                if (savedScorecards) {
-                    for (let savedScorecard of savedScorecards) {
-                        if (this.matches(savedScorecard)) {
-                            return false;
-                        }
+                let savedScorecards = getSavedScorecards();
+                for (let savedScorecard of savedScorecards) {
+                    if (this.matches(savedScorecard)) {
+                        return false;
                     }
                 }
                 return true;
@@ -969,6 +987,183 @@
             openModalDiv(popup);
         }
 
+        async function loadScorecard(mode, confirm = true) {
+            if (mode === "Load" && confirm && scorecard.isModified() && !await myConfirm("You have unsaved changes. Are you sure you want to load a new scorecard?", "Load Without Saving", "Cancel")) {
+                return;
+            }
+
+            let popup = document.createElement("div");
+            popup.classList.add("popup");
+
+            var fileNameInput = null;
+
+            let selectedRow = null;
+            function doLoad() {
+                if (mode === "Save") {
+                    scorecard.name = fileNameInput.value;
+                    scorecard.lastSaveDate = new Date();
+                    let savedScorecards = getSavedScorecards();
+                    let index = savedScorecards.findIndex(saved => saved.name === scorecard.name);
+                    if (index >= 0) {
+                        savedScorecards[index] = scorecard.clone();
+                    } else {
+                        savedScorecards.push(scorecard.clone());
+                    }
+                    localStorage.setItem("savedScorecards", JSON.stringify(savedScorecards));
+                } else
+                    if (selectedRow) {
+                        let index = Array.from(selectedRow.parentNode.children).indexOf(selectedRow) - 1;
+                        if (index >= 0) {
+                            scorecard = getSavedScorecards()[index];
+                            saveScores();
+                            rebuildTable();
+                        }
+                    }
+                closeModal();
+            }
+
+            popup.innerHTML = `<h3>${mode} Scorecard</h3>`;
+
+            function addSaves(div) {
+                let savedScorecards = getSavedScorecards();
+                const table = document.createElement('table');
+                table.style.cursor = "pointer";
+
+                const headerRow = document.createElement('tr');
+                headerRow.style.height = "20px";
+                function addHeaderCell(text) {
+                    const headerCell = document.createElement('th');
+                    headerCell.innerText = text;
+                    headerCell.style.padding = "5px";
+                    headerRow.appendChild(headerCell);
+                }
+
+                addHeaderCell("Name");
+                addHeaderCell("Saved");
+                addHeaderCell("Series");
+                addHeaderCell("Players");
+                addHeaderCell("Legends");
+                addHeaderCell("Races");
+
+                table.appendChild(headerRow);
+
+                for (let i = 0; i < savedScorecards.length; i++) {
+                    const currentScorecard = savedScorecards[i];
+                    const row = document.createElement('tr');
+                    row.style.height = "40px";
+
+                    row.onclick = function () {
+                        for (let tr of table.childNodes) {
+                            if (tr !== headerRow) tr.style.backgroundColor = "white";
+                        }
+                        row.style.backgroundColor = "lightgray";
+                        selectedRow = row;
+                        loadSaveButton.disabled = false;
+                        deleteButton.disabled = false;
+                        if (mode === "Save") {
+                            fileNameInput.value = currentScorecard.name;
+                        }
+                    };
+
+                    function addCell(text) {
+                        const cell = document.createElement('td');
+                        cell.innerText = text;
+                        cell.style.whiteSpace = "nowrap";
+                        cell.style.padding = "5px";
+                        row.appendChild(cell);
+                    }
+                    addCell(currentScorecard.name);
+                    addCell(relativeDateString(currentScorecard.lastSaveDate));
+                    addCell(currentScorecard.seriesName);
+                    addCell(currentScorecard.players.filter(player => !player.legend).length);
+                    addCell(currentScorecard.players.filter(player => player.legend).length);
+                    addCell(currentScorecard.getNumberOfRacesCompleted() + " / " + currentScorecard.getNumberOfRaces());
+
+                    table.appendChild(row);
+                }
+
+                // set column widths on table
+                const colWidths = ["150px", "100px", "100px", "100px", "100px", "100px"];
+                for (let i = 0; i < headerRow.children.length; i++) {
+                    headerRow.children[i].style.width = colWidths[i];
+                }
+
+                div.appendChild(table);
+            }
+
+            addSaves(popup);
+
+            function findUniqueName() {
+                for (let i = 1; i < 100; i++) {
+                    let name = "Scorecard " + i;
+                    if (!getSavedScorecards().find(scorecard => scorecard.name === name)) {
+                        return name;
+                    }
+                }
+            }
+
+            if (mode === "Save") {
+                let lable = document.createElement("label");
+                lable.innerText = "Name:";
+                popup.appendChild(lable);
+                fileNameInput = document.createElement("input");
+                fileNameInput.type = "text";
+                fileNameInput.value = scorecard.name || findUniqueName();
+                fileNameInput.maxLength = 20;
+                fileNameInput.oninput = function () {
+                    if (fileNameInput.value && fileNameInput.value.length > 0) {
+                        loadSaveButton.disabled = false;
+                    } else {
+                        loadSaveButton.disabled = true;
+                    }
+                };
+                fileNameInput.onkeydown = function (event) {
+                    if (event.key === "Enter" && loadSaveButton.disabled === false) {
+                        doLoad();
+                    }
+                };
+                popup.appendChild(fileNameInput);
+                popup.appendChild(document.createElement("br"));
+            }
+
+
+            let loadSaveButton = document.createElement("button");
+            loadSaveButton.innerText = mode;
+            loadSaveButton.onclick = doLoad;
+            loadSaveButton.style.float = "right";
+            loadSaveButton.disabled = mode === "Load";
+
+            let cancelButton = document.createElement("button");
+            cancelButton.innerText = "Cancel";
+            cancelButton.onclick = function () {
+                closeModal();
+            };
+            cancelButton.style.float = "right";
+
+            let deleteButton = document.createElement("button");
+            deleteButton.innerText = "Delete";
+            deleteButton.onclick = function () {
+                if (selectedRow) {
+                    let index = Array.from(selectedRow.parentNode.children).indexOf(selectedRow) - 1;
+                    if (index >= 0) {
+                        let savedScorecards = getSavedScorecards();
+                        savedScorecards.splice(index, 1);
+                        localStorage.setItem("savedScorecards", JSON.stringify(savedScorecards));
+                        closeModal();
+                        loadScorecard(mode, confirm = false);
+                    }
+                }
+            };
+            deleteButton.style.float = "left";
+            deleteButton.disabled = true;
+
+            popup.appendChild(deleteButton);
+            popup.appendChild(cancelButton);
+            popup.appendChild(loadSaveButton);
+
+            openModalDiv(popup);
+        }
+
         function renameRacer(racer) {
             popupTextInputPrompt(
                 `Enter new name for ${racer.title}:`,
@@ -1241,10 +1436,7 @@
         }
 
         function saveScorecard() {
-            let savedScorecards = JSON.parse(localStorage.getItem("savedScorecards"), Scorecard.reviver);
-            if (!savedScorecards) {
-                savedScorecards = [];
-            }
+            let savedScorecards = getSavedScorecards();
             if (!scorecard.name) {
                 scorecard.name = `Scorecard ${savedScorecards.length + 1}`;
             }
@@ -1272,12 +1464,22 @@
         function relativeDateString(date) {
             let now = new Date();
             let diff = now - new Date(date);
+
+
+
+
             if (diff < 1000 * 60) return "just now";
             if (diff < 1000 * 60 * 2) return "1 minute ago";
             if (diff < 1000 * 60 * 60) return Math.floor(diff / (1000 * 60)) + " minutes ago";
             if (diff < 1000 * 60 * 60 * 2) return "1 hour ago";
             if (diff < 1000 * 60 * 60 * 24) return Math.floor(diff / (1000 * 60 * 60)) + " hours ago";
-            return Math.floor(diff / (1000 * 60 * 60 * 24)) + " days ago";
+
+            if (diff < 1000 * 60 * 60 * 24 * 365) return date.toLocaleDateString(undefined, { month: "short", day: "numeric", })
+                + " at "
+                + date.toLocaleTimeString(undefined, { hour: "numeric", minute: "numeric", amPm: "short" });
+
+            return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric", });;
+
         }
 
         function myConfirm(message, yes = "Yes", no = "No") {
@@ -1305,29 +1507,13 @@
             });
         }
 
-        async function loadScorecard() {
-            if (scorecard.isModified() && !await myConfirm("You have unsaved changes. Are you sure you want to load a new scorecard?", "Load Without Saving", "Cancel")) {
-                return;
-            }
-
+        function getSavedScorecards() {
             let savedScorecards = JSON.parse(localStorage.getItem("savedScorecards"), Scorecard.reviver);
             if (!savedScorecards) {
                 savedScorecards = [];
             }
-
-            let buttons = savedScorecards.map((savedScorecard, index) => ({
-                text: savedScorecard.name,
-                info: `Series: "${savedScorecard.seriesName}" Racers: ${savedScorecard.players.length} Saved: ${relativeDateString(savedScorecard.lastSaveDate)}`,
-                action: function () {
-                    scorecard = savedScorecard.clone();
-                    saveScores();
-                    rebuildTable();
-                }
-            }));
-            popupButtonWindow("Choose a scorecard", buttons);
-
+            return savedScorecards;
         }
-
     </script>
 </head>
 
@@ -1342,12 +1528,7 @@
 
 
     <h2>HEAT:<br>PEDAL TO THE METAL<br>Online Scorecard</h2>
-    <table id="scoreTable">
-
-    </table>
-
-
-
+    <table id="scoreTable"></table>
 
     <button id="startOrder" onclick="sortColumnsByTotal()">Sort by Start Order</button>
     <button id="addPlayer" onclick="addRacer(false)">Add Player</button>
@@ -1357,8 +1538,8 @@
     <button onclick="clearScores()">Clear Scores</button>
     <button onclick="resetScorecard()">Reset Scorecard</button>
     <br>
-    <button onclick="saveScorecard()">Save Scorecard</button>
-    <button onclick="loadScorecard()">Load Scorecard</button>
+    <button onclick="loadScorecard(mode = 'Save')">Save Scorecard</button>
+    <button onclick="loadScorecard(mode = 'Load')">Load Scorecard</button>
     <br>
     <button onclick="rollWeather()">Generate Weather</button>
     <br>

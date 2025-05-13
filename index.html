@@ -63,7 +63,7 @@
 
         .popup {
             position: fixed;
-            top: 30%;
+            top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             background-color: white;
@@ -119,8 +119,8 @@
             /* Black w/ opacity */
         }
     </style>
+    <script src="./shrink.js"></script>
     <script>
-        console.log("--- Table Initializing");
 
         class Track {
             constructor(name, abbreviation, laps, length, turns, chicanes) {
@@ -360,7 +360,6 @@
             seriesMap.set(series.name, series);
         }
 
-        console.log(serieses);
         placeNames = ["", "1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "DNF"];
         placePoints = [0, 9, 6, 4, 3, 2, 1, 0, 0, 0];
 
@@ -411,7 +410,10 @@
         }
 
         class Scorecard {
+            seriesName = "";
+            date = undefined;
             players = [];
+            filename = undefined;
             constructor(seriesName, players) {
                 this.seriesName = seriesName;
                 this.appendRacers(players);
@@ -423,8 +425,8 @@
 
             static clone(other) {
                 let newScorecard = new Scorecard(other.seriesName, other.players);
-                newScorecard.name = other.name;
-                newScorecard.lastSaveDate = new Date(other.lastSaveDate);
+                newScorecard.filename = other.filename;
+                newScorecard.lastSaveDate = structuredClone(other.lastSaveDate);
                 newScorecard.fix();
                 return newScorecard;
             }
@@ -497,6 +499,7 @@
                     }
                 }
                 this.updateRacerTotals();
+                return this;
             }
 
             updateRacerTotals() {
@@ -552,29 +555,15 @@
                 });
             }
 
-            matches(other) {
-                if (this.seriesName !== other.seriesName) return false;
-                if (this.players.length !== other.players.length) return false;
-                for (let i = 0; i < this.players.length; i++) {
-                    if (this.players[i].name !== other.players[i].name) return false;
-                    if (this.players[i].colorIndex !== other.players[i].colorIndex) return false;
-                    for (let j = 0; j < this.getNumberOfRaces(); j++) {
-                        if (this.players[i].place[j] !== other.players[i].place[j]) return false;
-                    }
+            static exportReplacer(key, value) {
+                switch (key) {
+                    case "seed":
+                    case "filename":
+                    case "total":
+                    case "lastSaveDate":
+                        return undefined;
                 }
-                if (this.lastSaveDate - other.lastSaveDate != 0) return false;
-                if (this.name !== other.name) return false;
-                return true;
-            }
-
-            isModified() {
-                let savedScorecards = getSavedScorecards();
-                for (let savedScorecard of savedScorecards) {
-                    if (this.matches(savedScorecard)) {
-                        return false;
-                    }
-                }
-                return true;
+                return value;
             }
 
             static reviver(key, value) {
@@ -589,6 +578,32 @@
                     return new Date(value);
                 }
                 return value;
+            }
+
+            matches(other) {
+                if (this.seriesName !== other.seriesName) return false;
+                if (this.players.length !== other.players.length) return false;
+                for (let i = 0; i < this.players.length; i++) {
+                    if (this.players[i].name !== other.players[i].name) return false;
+                    if (this.players[i].colorIndex !== other.players[i].colorIndex) return false;
+                    for (let j = 0; j < this.getNumberOfRaces(); j++) {
+                        if (this.players[i].place[j] !== other.players[i].place[j]) return false;
+                    }
+                }
+                // if (this.lastSaveDate != other.lastSaveDate) return false;
+                if (this.filename !== other.filename) return false;
+                return true;
+            }
+
+            isModified() {
+                let savedScorecards = getSavedScorecards();
+                for (let savedScorecard of savedScorecards) {
+                    if (this.matches(savedScorecard)) {
+                        return false;
+                    }
+                }
+                if (this.matches(defaultScoreCard.fix())) return false;
+                return true;
             }
 
             hasScores() {
@@ -987,7 +1002,7 @@
             openModalDiv(popup);
         }
 
-        async function loadScorecard(mode, confirm = true) {
+        async function loadSaveScorecard(mode, confirm = true) {
             if (mode === "Load" && confirm && scorecard.isModified() && !await myConfirm("You have unsaved changes. Are you sure you want to load a new scorecard?", "Load Without Saving", "Cancel")) {
                 return;
             }
@@ -1000,10 +1015,10 @@
             let selectedRow = null;
             function doLoad() {
                 if (mode === "Save") {
-                    scorecard.name = fileNameInput.value;
+                    scorecard.filename = fileNameInput.value;
                     scorecard.lastSaveDate = new Date();
                     let savedScorecards = getSavedScorecards();
-                    let index = savedScorecards.findIndex(saved => saved.name === scorecard.name);
+                    let index = savedScorecards.findIndex(saved => saved.filename === scorecard.filename);
                     if (index >= 0) {
                         savedScorecards[index] = scorecard.clone();
                     } else {
@@ -1061,7 +1076,7 @@
                         loadSaveButton.disabled = false;
                         deleteButton.disabled = false;
                         if (mode === "Save") {
-                            fileNameInput.value = currentScorecard.name;
+                            fileNameInput.value = currentScorecard.filename;
                         }
                     };
 
@@ -1072,7 +1087,7 @@
                         cell.style.padding = "5px";
                         row.appendChild(cell);
                     }
-                    addCell(currentScorecard.name);
+                    addCell(currentScorecard.filename);
                     addCell(relativeDateString(currentScorecard.lastSaveDate));
                     addCell(currentScorecard.seriesName);
                     addCell(currentScorecard.players.filter(player => !player.legend).length);
@@ -1095,9 +1110,9 @@
 
             function findUniqueName() {
                 for (let i = 1; i < 100; i++) {
-                    let name = "Scorecard " + i;
-                    if (!getSavedScorecards().find(scorecard => scorecard.name === name)) {
-                        return name;
+                    let filename = "Scorecard " + i;
+                    if (!getSavedScorecards().find(scorecard => scorecard.filename === filename)) {
+                        return filename;
                     }
                 }
             }
@@ -1108,7 +1123,7 @@
                 popup.appendChild(lable);
                 fileNameInput = document.createElement("input");
                 fileNameInput.type = "text";
-                fileNameInput.value = scorecard.name || findUniqueName();
+                fileNameInput.value = scorecard.filename || findUniqueName();
                 fileNameInput.maxLength = 20;
                 fileNameInput.oninput = function () {
                     if (fileNameInput.value && fileNameInput.value.length > 0) {
@@ -1150,7 +1165,7 @@
                         savedScorecards.splice(index, 1);
                         localStorage.setItem("savedScorecards", JSON.stringify(savedScorecards));
                         closeModal();
-                        loadScorecard(mode, confirm = false);
+                        loadSaveScorecard(mode, confirm = false);
                     }
                 }
             };
@@ -1434,33 +1449,6 @@
             // document.body.appendChild(weatherDiv);
             document.body.insertBefore(weatherDiv, document.getElementById("qrcode"));
         }
-
-        function saveScorecard() {
-            let savedScorecards = getSavedScorecards();
-            if (!scorecard.name) {
-                scorecard.name = `Scorecard ${savedScorecards.length + 1}`;
-            }
-            popupTextInputPrompt("Enter a name for the scorecard:", scorecard.name, function (name) {
-                if (name) {
-                    scorecard.name = name;
-                    scorecard.lastSaveDate = new Date();
-                    found = false;
-                    for (let i = 0; i < savedScorecards.length; i++) {
-                        if (savedScorecards[i].name === scorecard.name) {
-                            savedScorecards[i] = scorecard;
-                            found = true;
-                            break;
-                        }
-                    }
-                    if (!found) {
-                        savedScorecards.push(scorecard);
-                    }
-                    localStorage.setItem("savedScorecards", JSON.stringify(savedScorecards));
-                    saveScores();
-                }
-            }, 0);
-        }
-
         function relativeDateString(date) {
             let now = new Date();
             let diff = now - new Date(date);
@@ -1514,10 +1502,49 @@
             }
             return savedScorecards;
         }
+
+        function bodyload() {
+            console.log("--- bodyload");
+            loadScores();
+            if (scorecard.hasScores()) {
+                sortColumnsByTotal();
+            }
+            const queryString = window.location.search;
+            const urlParams = new URLSearchParams(queryString);
+            const debug = urlParams.get('debug');
+            if (debug == 1) {
+                console.log("debug mode enabled");
+                // show the debug button
+                let debugButton = document.createElement("button");
+                debugButton.innerText = "Debug Export";
+                debugButton.onclick = function () {
+                    // open a new tab with the scorecard json string
+                    // let out = JSON.stringify(scorecard, null, 1);
+                    let out = JSON.stringify(shrink(scorecard), null, 1);
+                    // let out = JSON.stringify(grow(shrink(scorecard)), null, 2);
+
+
+                    {
+                        let newWindow = window.open();
+                        newWindow.document.write("<pre>" + out + "</pre>");
+                        newWindow.document.title = "Debug";
+                        newWindow.document.body.style.fontFamily = "monospace";
+                    }
+                    // {
+                    //     let newWindow = window.open();
+                    //     newWindow.document.write("<pre>" + importString + "</pre>");
+                    //     newWindow.document.title = "Debug Import";
+                    //     newWindow.document.body.style.fontFamily = "monospace";
+                    // }
+                };
+                document.body.appendChild(debugButton);
+            }
+        }
+
     </script>
 </head>
 
-<body onload="loadScores()">
+<body onload="bodyload()">
 
     <!-- Modal Structure -->
     <div id="modal" class="modal">
@@ -1538,8 +1565,8 @@
     <button onclick="clearScores()">Clear Scores</button>
     <button onclick="resetScorecard()">Reset Scorecard</button>
     <br>
-    <button onclick="loadScorecard(mode = 'Save')">Save Scorecard</button>
-    <button onclick="loadScorecard(mode = 'Load')">Load Scorecard</button>
+    <button onclick="loadSaveScorecard(mode = 'Save')">Save Scorecard</button>
+    <button onclick="loadSaveScorecard(mode = 'Load')">Load Scorecard</button>
     <br>
     <button onclick="rollWeather()">Generate Weather</button>
     <br>

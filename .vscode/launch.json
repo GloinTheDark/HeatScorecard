@@ -8,7 +8,7 @@
             "type": "chrome",
             "request": "launch",
             "name": "Open index.html",
-            "file": "c:\\Users\\sluce\\Documents\\HeatScoreCard\\HeatScoreCard\\index.html",
+            "file": "c:\\Users\\sluce\\Documents\\HeatScoreCard\\HeatScoreCard\\index.html?debug=1",
             // "cleanUp": "onlyTab",
             "userDataDir": "c:\\Users\\sluce\\Documents\\HeatScoreCard\\Save3",
         }

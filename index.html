@@ -156,7 +156,6 @@
             trackMap.set(track.abbreviation, track);
         });
 
-
         function customRace(raceNumber, trackAbbreviation) {
             return {
                 name: `Custom Race #${raceNumber}`,
@@ -165,6 +164,10 @@
                 track: trackAbbreviation,
                 rules: "",
             }
+        }
+
+        function randomRace(raceNumber) {
+            return customRace(raceNumber, tracks[Math.floor(Math.random() * tracks.length)].abbreviation);
         }
 
         let eventCards = [
@@ -333,7 +336,6 @@
                 sponsorshipCards: 1,
                 pressBoxes: ["B"],
             },
-            customRace(1, "GB"),
         ];
         let seriesList = [
             {
@@ -370,7 +372,7 @@
                 name: "Custom",
                 custom: true,
                 comment: "Custom series.",
-                eventCards: eventCards.filter(card => card.season === "2025")
+                eventCards: []
             }
 
         ];
@@ -972,7 +974,7 @@
                     action: function () {
                         scorecard.seriesName = series.name;
                         if (series.custom) {
-                            series.eventCards = [customRace(1, "GB")];
+                            series.eventCards = [randomRace(1)];
                         }
                         scorecard.clearScores();
                         saveScores();
@@ -1304,9 +1306,8 @@
 
         function addRaceEvent() {
             let eventCount = scorecard.getSeries().eventCards.length;
-            track = tracks[eventCount % tracks.length];
             scorecard.getSeries().eventCards.push(
-                customRace(eventCount + 1, track.abbreviation)
+                randomRace(eventCount + 1)
             );
 
             for (let score of scorecard.players) {

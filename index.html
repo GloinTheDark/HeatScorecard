@@ -155,6 +155,18 @@
         tracks.forEach(track => {
             trackMap.set(track.abbreviation, track);
         });
+
+
+        function customRace(raceNumber, trackAbbreviation) {
+            return {
+                name: `Custom Race #${raceNumber}`,
+                raceNumber: raceNumber,
+                season: "2025",
+                track: trackAbbreviation,
+                rules: "",
+            }
+        }
+
         let eventCards = [
             {
                 name: "New Grandstand Inauguration",
@@ -321,8 +333,9 @@
                 sponsorshipCards: 1,
                 pressBoxes: ["B"],
             },
+            customRace(1, "GB"),
         ];
-        let serieses = [
+        let seriesList = [
             {
                 name: "1961",
                 comment: "The inaugural season of HEAT: Pedal to the Metal, 3 Race Series",
@@ -353,10 +366,17 @@
                 comment: "From HEAT: Tunnel Vision",
                 eventCards: eventCards.filter(card => card.season === "1965")
             },
+            {
+                name: "Custom",
+                custom: true,
+                comment: "Custom series.",
+                eventCards: eventCards.filter(card => card.season === "2025")
+            }
+
         ];
 
         let seriesMap = new Map();
-        for (let series of serieses) {
+        for (let series of seriesList) {
             seriesMap.set(series.name, series);
         }
 
@@ -414,6 +434,7 @@
             date = undefined;
             players = [];
             filename = undefined;
+            customTracks = [];
             constructor(seriesName, players) {
                 this.seriesName = seriesName;
                 this.appendRacers(players);
@@ -426,21 +447,30 @@
             static clone(other) {
                 let newScorecard = new Scorecard(other.seriesName, other.players);
                 newScorecard.filename = other.filename;
+                newScorecard.customTracks = structuredClone(other.customTracks);
                 newScorecard.lastSaveDate = structuredClone(other.lastSaveDate);
+                let series = newScorecard.getSeries();
+                if (series.custom) {
+                    series.eventCards = [];
+                    // loop over customTracks and set the eventCards track to the custom track
+                    for (let i = 0; i < newScorecard.customTracks.length; i++) {
+                        series.eventCards.push(customRace(i + 1, newScorecard.customTracks[i]));
+                    }
+                }
                 newScorecard.fix();
                 return newScorecard;
             }
 
-            get series() {
+            getSeries() {
                 return seriesMap.get(this.seriesName);
             }
 
-            get numberOfRacers() {
+            getNumberOfRacers() {
                 return this.players.length;
             }
 
             getNumberOfRaces() {
-                return this.series.eventCards.length;
+                return this.getSeries().eventCards.length;
             }
 
             getNumberOfRacesCompleted() {
@@ -503,13 +533,13 @@
             }
 
             updateRacerTotals() {
-                let sr = seriesMap.get(this.seriesName);
+                let series = this.getSeries();
                 for (let player of this.players) {
                     let total = 0;
-                    for (let i = 0; i < sr.eventCards.length; i++) {
+                    for (let i = 0; i < series.eventCards.length; i++) {
                         let place = player.place[i];
                         // check to see if this event gives bonus points
-                        let eventCard = sr.eventCards[i];
+                        let eventCard = series.eventCards[i];
                         if (eventCard.bonusPlaces) {
                             if (place > 0 && place <= eventCard.bonusPlaces) {
                                 total += eventCard.pointBonus;
@@ -523,7 +553,7 @@
 
             getBonus(player, race) {
                 let place = player.place[race];
-                let eventCard = this.series.eventCards[race];
+                let eventCard = this.getSeries().eventCards[race];
                 if (eventCard.bonusPlaces && place > 0 && place <= eventCard.bonusPlaces) {
                     return eventCard.pointBonus;
                 }
@@ -532,19 +562,26 @@
 
             getCurrentEventCard() {
                 let race = 0;
-                let l = scorecard.series.eventCards.length;
+                let l = scorecard.getSeries().eventCards.length;
                 for (let player of this.players) {
                     for (let i = 0; i < l; i++) {
                         if (player.place[i] == 0) {
-                            return scorecard.series.eventCards[i];
+                            return scorecard.getSeries().eventCards[i];
                         }
                     }
                 }
 
-                return scorecard.series.eventCards[l - 1];
+                return scorecard.getSeries().eventCards[l - 1];
             }
 
             getSaveString() {
+                if (this.getSeries().custom) {
+                    this.customTracks = [];
+                    // loop over envent cards and add the track abbreviation to tracks
+                    for (let eventCard of this.getSeries().eventCards) {
+                        this.customTracks.push(eventCard.track);
+                    }
+                }
                 return JSON.stringify(this, (key, value) => {
                     switch (key) {
                         case "seed":
@@ -753,7 +790,7 @@
                 raceRowHeaderCell.style.width = "50px";
                 raceRowHeaderCell.style.height = "50px";
                 raceRowHeaderCell.style.cursor = "pointer";
-                let eventCard = scorecard.series.eventCards[race];
+                let eventCard = scorecard.getSeries().eventCards[race];
                 raceRowHeaderCell.innerHTML = `<strong>Race ${race + 1}</strong><br>${eventCard.track} ${infoString}`;
                 raceRowHeaderCell.onclick = function () {
                     showRaceInfo(race);
@@ -808,8 +845,9 @@
             while (table.firstChild) {
                 table.removeChild(table.firstChild);
             }
-            document.getElementById("addPlayer").disabled = scorecard.numberOfRacers >= 8;
-            document.getElementById("addLegend").disabled = scorecard.numberOfRacers >= 8;
+            document.getElementById("addPlayer").disabled = scorecard.getNumberOfRacers() >= 8;
+            document.getElementById("addLegend").disabled = scorecard.getNumberOfRacers() >= 8;
+            document.getElementById("addRaceEvent").disabled = !scorecard.getSeries().custom;
             document.getElementById("startOrder").innerHTML = (scorecard.hasScores() ? "Sort by" : "Randomize") + " Starting Order";
             buildTable();
         }
@@ -858,7 +896,7 @@
         }
 
         function showRaceInfo(race) {
-            let eventCard = scorecard.series.eventCards[race];
+            let eventCard = scorecard.getSeries().eventCards[race];
 
             let popup = document.createElement("div");
             popup.width = "300px";
@@ -872,9 +910,34 @@
             popup.innerHTML += `Sponsorship Cards: ${eventCard.sponsorshipCards || 0} <br>`;
             popup.innerHTML += `Press Boxes: ${(eventCard.pressBoxes && eventCard.pressBoxes.length > 0) ? eventCard.pressBoxes.join(", ") : "None"} <br>`;
 
+            if (scorecard.getSeries().custom) {
+                // add a button to change the track
+                let changeTrackButton = document.createElement("button");
+                changeTrackButton.innerText = "Change Track";
+                console.log("Change Track Button created");
+                changeTrackButton.onclick = function () {
+                    console.log("Change Track clicked");
+                    closeModal();
+                    let buttons = tracks.map((track, index) => ({
+                        text: track.name,
+                        info: `${track.laps} laps, ${track.turns} turns`,
+                        action: function () {
+                            eventCard.track = track.abbreviation;
+                            saveScores();
+                            rebuildTable();
+                        }
+                    }));
+                    popupButtonWindow("Choose a track", buttons);
+                };
+
+                popup.appendChild(changeTrackButton);
+            }
+
+
             let closeButton = document.createElement("button");
             closeButton.innerText = "Close";
             closeButton.onclick = function () {
+                console.log("Close Race Info");
                 closeModal();
             };
             popup.appendChild(closeButton);
@@ -889,9 +952,9 @@
             popupSeriesInfo.classList.add("popup");
             popupSeriesInfo.innerHTML = `<h3>Series Info:</h3>`;
 
-            let series = scorecard.series;
+            let series = scorecard.getSeries();
             if (!series) {
-                series = serieses[0];
+                series = seriesList[0];
             }
             popupSeriesInfo.innerHTML += `<strong>${series.name} - ${series.comment}</strong><br>`;
             popupSeriesInfo.innerHTML += `Events: ${series.eventCards.length}<br>`;
@@ -903,12 +966,14 @@
             changeSeriesButton.innerText = "Change Series";
             changeSeriesButton.onclick = function () {
                 closeModal();
-                let buttons = serieses.map((series, index) => ({
+                let buttons = seriesList.map((series, index) => ({
                     text: series.name,
                     info: series.comment,
                     action: function () {
                         scorecard.seriesName = series.name;
-                        scorecard.races = series.eventCards.length;
+                        if (series.custom) {
+                            series.eventCards = [customRace(1, "GB")];
+                        }
                         scorecard.clearScores();
                         saveScores();
                         rebuildTable();
@@ -1237,11 +1302,16 @@
             return 0;
         }
 
-        function addRace() {
+        function addRaceEvent() {
+            let eventCount = scorecard.getSeries().eventCards.length;
+            track = tracks[eventCount % tracks.length];
+            scorecard.getSeries().eventCards.push(
+                customRace(eventCount + 1, track.abbreviation)
+            );
+
             for (let score of scorecard.players) {
                 score.place.push(0);
             }
-            scorecard.races += 1;
             saveScores();
             rebuildTable();
         }
@@ -1560,10 +1630,10 @@
     <button id="startOrder" onclick="sortColumnsByTotal()">Sort by Start Order</button>
     <button id="addPlayer" onclick="addRacer(false)">Add Player</button>
     <button id="addLegend" onclick="addRacer(true)">Add Legend</button>
-    <!-- <button id="addRace" onclick="addRace()">Add Race</button> -->
     <br>
     <button onclick="clearScores()">Clear Scores</button>
     <button onclick="resetScorecard()">Reset Scorecard</button>
+    <button id="addRaceEvent" onclick="addRaceEvent()">Add Race</button>
     <br>
     <button onclick="loadSaveScorecard(mode = 'Save')">Save Scorecard</button>
     <button onclick="loadSaveScorecard(mode = 'Load')">Load Scorecard</button>

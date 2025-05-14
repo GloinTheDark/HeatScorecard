@@ -785,6 +785,8 @@
             nameRow.appendChild(raceSeriesCell);
             table.appendChild(nameRow);
 
+            let icon = scorecard.getSeries().custom ? editString : infoString;
+
             for (let race = 0; race < scorecard.getNumberOfRaces(); race++) {
                 let row = document.createElement("tr");
                 row.id = `race${race}`;
@@ -793,7 +795,7 @@
                 raceRowHeaderCell.style.height = "50px";
                 raceRowHeaderCell.style.cursor = "pointer";
                 let eventCard = scorecard.getSeries().eventCards[race];
-                raceRowHeaderCell.innerHTML = `<strong>Race ${race + 1}</strong><br>${eventCard.track} ${infoString}`;
+                raceRowHeaderCell.innerHTML = `<strong>Race ${race + 1}</strong><br>${eventCard.track} ${icon}`;
                 raceRowHeaderCell.onclick = function () {
                     showRaceInfo(race);
                 };

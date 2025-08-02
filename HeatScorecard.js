@@ -269,7 +269,7 @@ let seriesList = [
     },
     {
         name: "1965",
-        comment: "From HEAT: Tunnel Vision",
+        comment: "From HEAT: Tunnel Vision, 4 Race Series",
         eventCards: eventCards.filter(card => card.season === "1965"),
         expansion: "tunnelVision"
     },

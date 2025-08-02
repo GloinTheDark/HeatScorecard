@@ -1,13 +1,14 @@
 
 
 class Track {
-    constructor(name, abbreviation, laps, length, turns, chicanes) {
+    constructor(name, abbreviation, laps, length, turns, chicanes, expansion = "base") {
         this.name = name;
         this.abbreviation = abbreviation;
         this.laps = laps;
         this.length = length;
         this.turns = turns;
         this.chicanes = chicanes;
+        this.expansion = expansion; // "base", "heavyRain", "tunnelVision"
     }
 
     get imageName() {
@@ -19,14 +20,14 @@ let infoString = "ℹ️";
 let editString = "✏️";
 
 let tracks = [
-    new Track("Great Britain", "GB", 2, 63, 5, []),
-    new Track("United States", "USA", 2, 69, 4, []),
-    new Track("Italy", "ITA", 3, 54, 3, []),
-    new Track("France", "FRA", 2, 60, 5, []),
-    new Track("Mexico", "MEX", 3, 60, 6, [1, 4]),
-    new Track("Japan", "JPN", 2, 60, 5, [1]),
-    new Track("Spain", "ESP", 1, 109, 11, [3, 9]),
-    new Track("Netherlands", "NED", 3, 55, 5, [1]),
+    new Track("Great Britain", "GB", 2, 63, 5, [], "base"),
+    new Track("United States", "USA", 2, 69, 4, [], "base"),
+    new Track("Italy", "ITA", 3, 54, 3, [], "base"),
+    new Track("France", "FRA", 2, 60, 5, [], "base"),
+    new Track("Mexico", "MEX", 3, 60, 6, [1, 4], "heavyRain"),
+    new Track("Japan", "JPN", 2, 60, 5, [1], "heavyRain"),
+    new Track("Spain", "ESP", 1, 109, 11, [3, 9], "tunnelVision"),
+    new Track("Netherlands", "NED", 3, 55, 5, [1], "tunnelVision"),
 ];
 
 let trackMap = new Map();
@@ -45,7 +46,12 @@ function customRace(raceNumber, trackAbbreviation) {
 }
 
 function randomRace(raceNumber) {
-    return customRace(raceNumber, tracks[Math.floor(Math.random() * tracks.length)].abbreviation);
+    let availableTracks = getAvailableTracks();
+    if (availableTracks.length === 0) {
+        // Fallback to base game tracks if no tracks are available
+        availableTracks = tracks.filter(track => track.expansion === "base");
+    }
+    return customRace(raceNumber, availableTracks[Math.floor(Math.random() * availableTracks.length)].abbreviation);
 }
 
 let eventCards = [
@@ -219,38 +225,45 @@ let seriesList = [
     {
         name: "1961",
         comment: "The inaugural season of HEAT: Pedal to the Metal, 3 Race Series",
-        eventCards: eventCards.filter(card => card.season === "1961")
+        eventCards: eventCards.filter(card => card.season === "1961"),
+        expansion: "base"
     },
     {
         name: "1962",
         comment: "The second season of HEAT: Pedal to the Metal, 2 Race Series",
-        eventCards: eventCards.filter(card => card.season === "1962")
+        eventCards: eventCards.filter(card => card.season === "1962"),
+        expansion: "base"
     },
     {
         name: "1963",
         comment: "The third season of HEAT: Pedal to the Metal, 4 Race Series",
-        eventCards: eventCards.filter(card => card.season === "1963")
+        eventCards: eventCards.filter(card => card.season === "1963"),
+        expansion: "base"
     },
     {
         name: "GOAT",
         comment: "Greatest of All Time: 1961-1963, 10 Race series",
-        eventCards: eventCards.filter(card => ["1961", "1962", "1963"].includes(card.season))
+        eventCards: eventCards.filter(card => ["1961", "1962", "1963"].includes(card.season)),
+        expansion: "base"
     },
     {
         name: "1964",
         comment: "From HEAT: Heavy Rain, 4 Race Series",
-        eventCards: eventCards.filter(card => card.season === "1964")
+        eventCards: eventCards.filter(card => card.season === "1964"),
+        expansion: "heavyRain"
     },
     {
         name: "1965",
         comment: "From HEAT: Tunnel Vision",
-        eventCards: eventCards.filter(card => card.season === "1965")
+        eventCards: eventCards.filter(card => card.season === "1965"),
+        expansion: "tunnelVision"
     },
     {
         name: "Custom",
         custom: true,
         comment: "Custom series.",
-        eventCards: []
+        eventCards: [],
+        expansion: "base"
     }
 
 ];
@@ -315,6 +328,10 @@ class Scorecard {
     players = [];
     filename = undefined;
     customTracks = [];
+    expansions = {
+        heavyRain: false,
+        tunnelVision: false
+    };
     constructor(seriesName, players) {
         this.seriesName = seriesName;
         this.appendRacers(players);
@@ -329,6 +346,10 @@ class Scorecard {
         newScorecard.filename = other.filename;
         newScorecard.customTracks = structuredClone(other.customTracks);
         newScorecard.lastSaveDate = structuredClone(other.lastSaveDate);
+        newScorecard.expansions = structuredClone(other.expansions) || {
+            heavyRain: false,
+            tunnelVision: false
+        };
         let series = newScorecard.getSeries();
         if (series.custom) {
             series.eventCards = [];
@@ -541,9 +562,66 @@ let defaultScoreCard = new Scorecard("1961", [
 
 let scorecard = defaultScoreCard.clone();
 
-let colorNames = ["Yellow", "Blue", "Green", "Red", "Black", "Gray", "Orange", "Purple"];
-let colorValues = ["yellow", "blue", "green", "red", "black", "lightgray", "orange", "purple"];
-let textColors = ["black", "white", "white", "white", "white", "black", "black", "white"];
+let colorData = [
+    { name: "Yellow", value: "yellow", text: "black", expansion: "base" },
+    { name: "Blue", value: "blue", text: "white", expansion: "base" },
+    { name: "Green", value: "green", text: "white", expansion: "base" },
+    { name: "Red", value: "red", text: "white", expansion: "base" },
+    { name: "Black", value: "black", text: "white", expansion: "base" },
+    { name: "Gray", value: "lightgray", text: "black", expansion: "base" },
+    { name: "Orange", value: "orange", text: "black", expansion: "heavyRain" },
+    { name: "Purple", value: "purple", text: "white", expansion: "tunnelVision" }
+];
+
+// Maintain backward compatibility with existing arrays
+let colorNames = colorData.map(color => color.name);
+let colorValues = colorData.map(color => color.value);
+let textColors = colorData.map(color => color.text);
+
+function getAvailableElements(elementList, expansions) {
+    return elementList.filter(element => {
+        if (!element.expansion || element.expansion === "base") {
+            return true; // Base game elements are always available
+        }
+
+        switch (element.expansion) {
+            case "heavyRain":
+                return expansions.heavyRain;
+            case "tunnelVision":
+                return expansions.tunnelVision;
+            default:
+                return true;
+        }
+    });
+}
+
+function getAvailableTracks() {
+    return getAvailableElements(tracks, scorecard.expansions);
+}
+
+function getAvailableSeries() {
+    return getAvailableElements(seriesList, scorecard.expansions);
+}
+
+function getAvailableColors() {
+    return getAvailableElements(colorData, scorecard.expansions);
+}
+
+function getExpansionDisplayString() {
+    let expansions = [];
+    if (scorecard.expansions.heavyRain) {
+        expansions.push("HR"); // Heavy Rain
+    }
+    if (scorecard.expansions.tunnelVision) {
+        expansions.push("TV"); // Tunnel Vision
+    }
+
+    if (expansions.length === 0) {
+        return "";
+    }
+
+    return "<br><small>Expansions: " + expansions.join(", ") + "</small>";
+}
 
 function restrictTab(div) {
     console.log("--- restrictTab");
@@ -656,7 +734,7 @@ function buildTable() {
     raceSeriesCell.style.width = "70px";
     raceSeriesCell.style.cursor = "pointer";
     let series = seriesMap.get(scorecard.seriesName);
-    raceSeriesCell.innerHTML = "<strong>Series</strong><br>" + scorecard.seriesName + " " + editString;
+    raceSeriesCell.innerHTML = "<strong>Series</strong><br>" + scorecard.seriesName + " " + editString + getExpansionDisplayString();
     raceSeriesCell.onclick = function () {
         showSeriesInfo();
     };
@@ -800,9 +878,10 @@ function showRaceInfo(race) {
         changeTrackButton.onclick = function () {
             console.log("Change Track clicked");
             closeModal();
-            let buttons = tracks.map((track, index) => ({
+            let availableTracks = getAvailableTracks();
+            let buttons = availableTracks.map((track, index) => ({
                 text: track.name,
-                info: `${track.laps} laps, ${track.turns} turns`,
+                info: `${track.laps} laps, ${track.turns} turns` + (track.expansion !== "base" ? ` (${track.expansion === "heavyRain" ? "Heavy Rain" : "Tunnel Vision"})` : ""),
                 action: function () {
                     eventCard.track = track.abbreviation;
                     saveScores();
@@ -840,6 +919,22 @@ function showSeriesInfo() {
     }
     popupSeriesInfo.innerHTML += `<strong>${series.name} - ${series.comment}</strong><br>`;
     popupSeriesInfo.innerHTML += `Events: ${series.eventCards.length}<br>`;
+
+    // Add expansion information
+    let activeExpansions = [];
+    if (scorecard.expansions.heavyRain) {
+        activeExpansions.push("Heat: Heavy Rain");
+    }
+    if (scorecard.expansions.tunnelVision) {
+        activeExpansions.push("Heat: Tunnel Vision");
+    }
+
+    if (activeExpansions.length > 0) {
+        popupSeriesInfo.innerHTML += `<strong>Active Expansions:</strong> ${activeExpansions.join(", ")}<br>`;
+    } else {
+        popupSeriesInfo.innerHTML += `<strong>Active Expansions:</strong> None<br>`;
+    }
+
     for (let eventCard of series.eventCards) {
         popupSeriesInfo.innerHTML += `<br><strong>${eventCard.season}, Race ${eventCard.raceNumber}<br>${eventCard.name}</strong><br>`;
     }
@@ -848,9 +943,10 @@ function showSeriesInfo() {
     changeSeriesButton.innerText = "Change Series";
     changeSeriesButton.onclick = function () {
         closeModal();
-        let buttons = seriesList.map((series, index) => ({
+        let availableSeries = getAvailableSeries();
+        let buttons = availableSeries.map((series, index) => ({
             text: series.name,
-            info: series.comment,
+            info: series.comment + (series.expansion !== "base" ? ` (${series.expansion === "heavyRain" ? "Heavy Rain" : "Tunnel Vision"})` : ""),
             action: function () {
                 scorecard.seriesName = series.name;
                 if (series.custom) {
@@ -864,6 +960,14 @@ function showSeriesInfo() {
         popupButtonWindow("Choose a series", buttons);
     };
     popupSeriesInfo.appendChild(changeSeriesButton);
+
+    let expansionSettingsButton = document.createElement("button");
+    expansionSettingsButton.innerText = "Expansion Settings";
+    expansionSettingsButton.onclick = function () {
+        closeModal();
+        showExpansionSettings();
+    };
+    popupSeriesInfo.appendChild(expansionSettingsButton);
 
     // addadd a close button
     let closeButton = document.createElement("button");
@@ -946,6 +1050,106 @@ function popupButtonWindow(message, buttons) {
             popup.appendChild(infoElement);
         }
     }
+    openModalDiv(popup);
+}
+
+function showExpansionSettings() {
+    let popup = document.createElement("div");
+    popup.classList.add("popup");
+    popup.innerHTML = "<h3>Expansion Settings</h3>";
+    popup.innerHTML += "Select which expansions you are using for this scorecard:<br><br>";
+
+    // Heavy Rain expansion checkbox
+    let heavyRainDiv = document.createElement("div");
+    heavyRainDiv.style.margin = "10px 0";
+
+    let heavyRainCheckbox = document.createElement("input");
+    heavyRainCheckbox.type = "checkbox";
+    heavyRainCheckbox.id = "heavyRainCheckbox";
+    heavyRainCheckbox.checked = scorecard.expansions.heavyRain;
+    heavyRainCheckbox.style.marginRight = "8px";
+
+    let heavyRainLabel = document.createElement("label");
+    heavyRainLabel.htmlFor = "heavyRainCheckbox";
+    heavyRainLabel.textContent = "Heat: Heavy Rain";
+    heavyRainLabel.style.fontSize = "16px";
+
+    heavyRainDiv.appendChild(heavyRainCheckbox);
+    heavyRainDiv.appendChild(heavyRainLabel);
+    popup.appendChild(heavyRainDiv);
+
+    // Tunnel Vision expansion checkbox
+    let tunnelVisionDiv = document.createElement("div");
+    tunnelVisionDiv.style.margin = "10px 0";
+
+    let tunnelVisionCheckbox = document.createElement("input");
+    tunnelVisionCheckbox.type = "checkbox";
+    tunnelVisionCheckbox.id = "tunnelVisionCheckbox";
+    tunnelVisionCheckbox.checked = scorecard.expansions.tunnelVision;
+    tunnelVisionCheckbox.style.marginRight = "8px";
+
+    let tunnelVisionLabel = document.createElement("label");
+    tunnelVisionLabel.htmlFor = "tunnelVisionCheckbox";
+    tunnelVisionLabel.textContent = "Heat: Tunnel Vision";
+    tunnelVisionLabel.style.fontSize = "16px";
+
+    tunnelVisionDiv.appendChild(tunnelVisionCheckbox);
+    tunnelVisionDiv.appendChild(tunnelVisionLabel);
+    popup.appendChild(tunnelVisionDiv);
+
+    // Buttons
+    let buttonDiv = document.createElement("div");
+    buttonDiv.style.marginTop = "20px";
+
+    let saveButton = document.createElement("button");
+    saveButton.textContent = "Save";
+    saveButton.style.margin = "5px";
+    saveButton.onclick = function () {
+        scorecard.expansions.heavyRain = heavyRainCheckbox.checked;
+        scorecard.expansions.tunnelVision = tunnelVisionCheckbox.checked;
+        console.log("Expansion settings updated:", scorecard.expansions);
+
+        // Check if current series is still available
+        let availableSeries = getAvailableSeries();
+        let currentSeries = scorecard.getSeries();
+        let isCurrentSeriesAvailable = availableSeries.some(series => series.name === currentSeries.name);
+
+        if (!isCurrentSeriesAvailable) {
+            // Switch to a base game series
+            let baseSeries = availableSeries.find(series => series.expansion === "base");
+            if (baseSeries) {
+                scorecard.seriesName = baseSeries.name;
+                scorecard.clearScores();
+            }
+        }
+
+        // Check if any player colors are no longer available
+        let availableColors = getAvailableColors();
+        let availableColorIndices = availableColors.map(color => colorNames.indexOf(color.name));
+
+        for (let player of scorecard.players) {
+            if (!availableColorIndices.includes(player.colorIndex)) {
+                // Assign an available color
+                let newColorIndex = getUnusedColorIndex();
+                player.colorIndex = newColorIndex;
+            }
+        }
+
+        closeModal();
+        rebuildTable(); // Refresh the table to show expansion changes
+    };
+
+    let cancelButton = document.createElement("button");
+    cancelButton.textContent = "Cancel";
+    cancelButton.style.margin = "5px";
+    cancelButton.onclick = function () {
+        closeModal();
+    };
+
+    buttonDiv.appendChild(saveButton);
+    buttonDiv.appendChild(cancelButton);
+    popup.appendChild(buttonDiv);
+
     openModalDiv(popup);
 }
 
@@ -1176,11 +1380,20 @@ function sortColumnsByTotal() {
 
 function getUnusedColorIndex() {
     let usedColors = scorecard.players.map(score => score.colorIndex);
-    for (let i = 0; i < colorValues.length; i++) {
-        if (!usedColors.includes(i)) {
-            return i;
+    let availableColors = getAvailableColors();
+
+    for (let colorData of availableColors) {
+        let colorIndex = colorNames.indexOf(colorData.name);
+        if (!usedColors.includes(colorIndex)) {
+            return colorIndex;
         }
     }
+
+    // If all available colors are used, return the first available color index
+    if (availableColors.length > 0) {
+        return colorNames.indexOf(availableColors[0].name);
+    }
+
     return 0;
 }
 
@@ -1210,17 +1423,17 @@ function addRacer(legend) {
 }
 
 function chooseColor(player) {
-    let colorIndex = getUnusedColorIndex();
-    popupButtonWindow("Choose a color", [
-        { text: "Yellow", action: () => { changeColor(0, player); }, colorIndex: 0 },
-        { text: "Blue", action: () => { changeColor(1, player); }, colorIndex: 1 },
-        { text: "Green", action: () => { changeColor(2, player); }, colorIndex: 2 },
-        { text: "Red", action: () => { changeColor(3, player); }, colorIndex: 3 },
-        { text: "Black", action: () => { changeColor(4, player); }, colorIndex: 4 },
-        { text: "Gray", action: () => { changeColor(5, player); }, colorIndex: 5 },
-        { text: "Orange", action: () => { changeColor(6, player); }, colorIndex: 6 },
-        { text: "Purple", action: () => { changeColor(7, player); }, colorIndex: 7 }
-    ]);
+    let availableColors = getAvailableColors();
+    let buttons = availableColors.map((colorData, originalIndex) => {
+        // Find the original index in the full color array
+        let colorIndex = colorNames.indexOf(colorData.name);
+        return {
+            text: colorData.name,
+            action: () => { changeColor(colorIndex, player); },
+            colorIndex: colorIndex
+        };
+    });
+    popupButtonWindow("Choose a color", buttons);
 }
 
 function changeColor(colorIndex, player) {
@@ -1454,8 +1667,134 @@ function getSavedScorecards() {
     return savedScorecards;
 }
 
+function createBodyElements() {
+    // Create modal structure
+    const modal = document.createElement('div');
+    modal.id = 'modal';
+    modal.className = 'modal';
+
+    const modalContent = document.createElement('div');
+    modalContent.className = 'modal-content';
+
+    const closeButton = document.createElement('span');
+    closeButton.className = 'close-button';
+    closeButton.innerHTML = '&times;';
+    closeButton.onclick = closeModal;
+
+    modalContent.appendChild(closeButton);
+    modal.appendChild(modalContent);
+    document.body.appendChild(modal);
+
+    // Create title
+    const title = document.createElement('h2');
+    title.innerHTML = 'HEAT:<br>PEDAL TO THE METAL<br>Online Scorecard';
+    document.body.appendChild(title);
+
+    // Create score table
+    const scoreTable = document.createElement('table');
+    scoreTable.id = 'scoreTable';
+    document.body.appendChild(scoreTable);
+
+    // Create buttons - first row
+    const startOrderBtn = document.createElement('button');
+    startOrderBtn.id = 'startOrder';
+    startOrderBtn.textContent = 'Sort by Start Order';
+    startOrderBtn.onclick = sortColumnsByTotal;
+    document.body.appendChild(startOrderBtn);
+
+    const addPlayerBtn = document.createElement('button');
+    addPlayerBtn.id = 'addPlayer';
+    addPlayerBtn.textContent = 'Add Player';
+    addPlayerBtn.onclick = () => addRacer(false);
+    document.body.appendChild(addPlayerBtn);
+
+    const addLegendBtn = document.createElement('button');
+    addLegendBtn.id = 'addLegend';
+    addLegendBtn.textContent = 'Add Legend';
+    addLegendBtn.onclick = () => addRacer(true);
+    document.body.appendChild(addLegendBtn);
+
+    // Line break
+    document.body.appendChild(document.createElement('br'));
+
+    // Second row of buttons
+    const clearScoresBtn = document.createElement('button');
+    clearScoresBtn.textContent = 'Clear Scores';
+    clearScoresBtn.onclick = clearScores;
+    document.body.appendChild(clearScoresBtn);
+
+    const resetScorecardBtn = document.createElement('button');
+    resetScorecardBtn.textContent = 'Reset Scorecard';
+    resetScorecardBtn.onclick = resetScorecard;
+    document.body.appendChild(resetScorecardBtn);
+
+    const addRaceEventBtn = document.createElement('button');
+    addRaceEventBtn.id = 'addRaceEvent';
+    addRaceEventBtn.textContent = 'Add Race';
+    addRaceEventBtn.onclick = addRaceEvent;
+    document.body.appendChild(addRaceEventBtn);
+
+    // Line break
+    document.body.appendChild(document.createElement('br'));
+
+    // Third row of buttons
+    const saveScorecardBtn = document.createElement('button');
+    saveScorecardBtn.textContent = 'Save Scorecard';
+    saveScorecardBtn.onclick = () => loadSaveScorecard('Save');
+    document.body.appendChild(saveScorecardBtn);
+
+    const loadScorecardBtn = document.createElement('button');
+    loadScorecardBtn.textContent = 'Load Scorecard';
+    loadScorecardBtn.onclick = () => loadSaveScorecard('Load');
+    document.body.appendChild(loadScorecardBtn);
+
+    // Line break
+    document.body.appendChild(document.createElement('br'));
+
+    // Weather button
+    const rollWeatherBtn = document.createElement('button');
+    rollWeatherBtn.textContent = 'Generate Weather';
+    rollWeatherBtn.onclick = rollWeather;
+    document.body.appendChild(rollWeatherBtn);
+
+    // Line break
+    document.body.appendChild(document.createElement('br'));
+
+    // Expansion Settings button
+    const expansionSettingsBtn = document.createElement('button');
+    expansionSettingsBtn.textContent = 'Expansion Settings';
+    expansionSettingsBtn.onclick = showExpansionSettings;
+    document.body.appendChild(expansionSettingsBtn);
+
+    // Line breaks
+    document.body.appendChild(document.createElement('br'));
+    document.body.appendChild(document.createElement('br'));
+
+    // QR code section
+    const qrCodeDiv = document.createElement('div');
+    qrCodeDiv.id = 'qrcode';
+
+    qrCodeDiv.appendChild(document.createElement('br'));
+
+    const qrText = document.createTextNode('Scan this code to share the link to this page.');
+    qrCodeDiv.appendChild(qrText);
+
+    qrCodeDiv.appendChild(document.createElement('br'));
+
+    const qrImg = document.createElement('img');
+    qrImg.src = 'qr-code.png';
+    qrImg.alt = 'QR Code';
+    qrImg.style.cssText = 'display: block; margin: 20px 0; width: 200px; height: 200px; float: none;';
+    qrCodeDiv.appendChild(qrImg);
+
+    qrCodeDiv.appendChild(document.createElement('br'));
+
+    document.body.appendChild(qrCodeDiv);
+}
+
 function bodyload() {
     console.log("--- bodyload");
+    createBodyElements();
     loadScores();
     if (scorecard.hasScores()) {
         sortColumnsByTotal();

@@ -124,41 +124,6 @@
 </head>
 
 <body>
-
-    <!-- Modal Structure -->
-    <div id="modal" class="modal">
-        <div class="modal-content">
-            <span class="close-button" onclick="closeModal()">&times;</span>
-        </div>
-    </div>
-
-
-    <h2>HEAT:<br>PEDAL TO THE METAL<br>Online Scorecard</h2>
-    <table id="scoreTable"></table>
-
-    <button id="startOrder" onclick="sortColumnsByTotal()">Sort by Start Order</button>
-    <button id="addPlayer" onclick="addRacer(false)">Add Player</button>
-    <button id="addLegend" onclick="addRacer(true)">Add Legend</button>
-    <br>
-    <button onclick="clearScores()">Clear Scores</button>
-    <button onclick="resetScorecard()">Reset Scorecard</button>
-    <button id="addRaceEvent" onclick="addRaceEvent()">Add Race</button>
-    <br>
-    <button onclick="loadSaveScorecard(mode = 'Save')">Save Scorecard</button>
-    <button onclick="loadSaveScorecard(mode = 'Load')">Load Scorecard</button>
-    <br>
-    <button onclick="rollWeather()">Generate Weather</button>
-    <br>
-    <br>
-    <div id="qrcode">
-        <br>
-        Scan this code to share the link to this page.
-        <br>
-        <img src="qr-code.png" alt="QR Code"
-            style="display: block; margin: 20px 0; width: 200px; height: 200px; float: none;">
-        <br>
-    </div>
 </body>
-
 
 </html>

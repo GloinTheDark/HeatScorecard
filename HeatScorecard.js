@@ -51,6 +51,21 @@ function randomRace(raceNumber) {
         // Fallback to base game tracks if no tracks are available
         availableTracks = tracks.filter(track => track.expansion === "base");
     }
+
+    // Get the previous track to avoid repeating it
+    let previousTrack = null;
+    if (raceNumber > 1) {
+        let series = scorecard.getSeries();
+        if (series && series.eventCards && series.eventCards.length >= raceNumber - 1) {
+            previousTrack = series.eventCards[raceNumber - 2].track;
+        }
+    }
+
+    // Filter out the previous track if we have more than one available track
+    if (previousTrack && availableTracks.length > 1) {
+        availableTracks = availableTracks.filter(track => track.abbreviation !== previousTrack);
+    }
+
     return customRace(raceNumber, availableTracks[Math.floor(Math.random() * availableTracks.length)].abbreviation);
 }
 
@@ -607,6 +622,21 @@ function getAvailableColors() {
     return getAvailableElements(colorData, scorecard.expansions);
 }
 
+function hasAvailableColors() {
+    let usedColors = scorecard.players.map(score => score.colorIndex);
+    let availableColors = getAvailableColors();
+
+    // Check if there are any available colors that aren't already used
+    for (let colorData of availableColors) {
+        let colorIndex = colorNames.indexOf(colorData.name);
+        if (!usedColors.includes(colorIndex)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 function getExpansionDisplayString() {
     let expansions = [];
     if (scorecard.expansions.heavyRain) {
@@ -805,8 +835,8 @@ function rebuildTable() {
     while (table.firstChild) {
         table.removeChild(table.firstChild);
     }
-    document.getElementById("addPlayer").disabled = scorecard.getNumberOfRacers() >= 8;
-    document.getElementById("addLegend").disabled = scorecard.getNumberOfRacers() >= 8;
+    document.getElementById("addPlayer").disabled = scorecard.getNumberOfRacers() >= 8 || !hasAvailableColors();
+    document.getElementById("addLegend").disabled = scorecard.getNumberOfRacers() >= 8 || !hasAvailableColors();
     document.getElementById("addRaceEvent").disabled = !scorecard.getSeries().custom;
     document.getElementById("startOrder").innerHTML = (scorecard.hasScores() ? "Sort by" : "Randomize") + " Starting Order";
     buildTable();
@@ -849,7 +879,14 @@ async function clearScores() {
 
 async function resetScorecard() {
     if (await myConfirm("Are you sure you want to reset the scorecard?")) {
+        // Save the current expansion settings
+        let currentExpansions = structuredClone(scorecard.expansions);
+
         scorecard = defaultScoreCard.clone();
+
+        // Restore the expansion settings
+        scorecard.expansions = currentExpansions;
+
         saveScores();
         rebuildTable();
     }
@@ -1417,9 +1454,6 @@ function addRacer(legend) {
     scorecard.fix();
     saveScores();
     rebuildTable();
-    if (!legend) {
-        renameRacer(racer);
-    }
 }
 
 function chooseColor(player) {

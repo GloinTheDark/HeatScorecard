@@ -1840,27 +1840,8 @@ function bodyload() {
         console.log("debug mode enabled");
         // show the debug button
         let debugButton = document.createElement("button");
-        debugButton.innerText = "Debug Export";
-        debugButton.onclick = function () {
-            // open a new tab with the scorecard json string
-            // let out = JSON.stringify(scorecard, null, 1);
-            let out = JSON.stringify(shrink(scorecard), null, 1);
-            // let out = JSON.stringify(grow(shrink(scorecard)), null, 2);
+        debugButton.innerText = "Debug";
 
-
-            {
-                let newWindow = window.open();
-                newWindow.document.write("<pre>" + out + "</pre>");
-                newWindow.document.title = "Debug";
-                newWindow.document.body.style.fontFamily = "monospace";
-            }
-            // {
-            //     let newWindow = window.open();
-            //     newWindow.document.write("<pre>" + importString + "</pre>");
-            //     newWindow.document.title = "Debug Import";
-            //     newWindow.document.body.style.fontFamily = "monospace";
-            // }
-        };
         document.body.appendChild(debugButton);
     }
 }
